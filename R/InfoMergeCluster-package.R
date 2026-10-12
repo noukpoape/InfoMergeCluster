@@ -1,5 +1,5 @@
 # Part of the InfoMergeCluster package.
-# Author: Komlan Midodzi NOUKPOAPE <noukpoape@gmail.com>
+# Author: Komlan Midodzi Noukpoape <noukpoape@gmail.com>
 
 #' InfoMergeCluster: clustering of sparse longitudinal data
 #'

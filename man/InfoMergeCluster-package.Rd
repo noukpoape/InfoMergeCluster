@@ -29,6 +29,6 @@ Useful links:
 }
 }
 \author{
-\strong{Maintainer}: Komlan Midodzi NOUKPOAPE \email{noukpoape@gmail.com}
+\strong{Maintainer}: Komlan Midodzi Noukpoape \email{noukpoape@gmail.com}
 }
 \keyword{internal}

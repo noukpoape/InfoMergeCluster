@@ -100,10 +100,39 @@ gen3b <- f.data.generation(senario = 3, n.k = c(50, 50, 50, 50))   # custom size
 
 See `?infomergecluster` for the full list.
 
+## Citation
+
+If you use `InfoMergeCluster` in a publication, please cite it as:
+
+> Noukpoape, K. M. (2026). *InfoMergeCluster: Clustering of Sparse
+> Longitudinal Data with Automatic Selection of the Number of Clusters.*
+> R package version 1.0.0. https://github.com/noukpoape/InfoMergeCluster
+
+BibTeX entry:
+
+```bibtex
+@Manual{Noukpoape2026InfoMergeCluster,
+  title  = {{InfoMergeCluster}: Clustering of Sparse Longitudinal Data with Automatic Selection of the Number of Clusters},
+  author = {Komlan Midodzi Noukpoape},
+  year   = {2026},
+  note   = {R package version 1.0.0},
+  url    = {https://github.com/noukpoape/InfoMergeCluster},
+}
+```
+
+The same reference is returned in R by:
+
+```r
+citation("InfoMergeCluster")
+```
+
+and is available on GitHub through the **Cite this repository** button
+(file `CITATION.cff`).
+
 ## Author
 
-Komlan Midodzi NOUKPOAPE — <noukpoape@gmail.com>
+Komlan Midodzi Noukpoape — <noukpoape@gmail.com>
 
 ## License
 
-MIT © Komlan Midodzi NOUKPOAPE
+MIT © Komlan Midodzi Noukpoape

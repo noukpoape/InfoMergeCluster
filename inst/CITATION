@@ -1,0 +1,16 @@
+bibentry(
+  bibtype  = "Manual",
+  key      = "Noukpoape2026InfoMergeCluster",
+  title    = "{InfoMergeCluster}: Clustering of Sparse Longitudinal Data with Automatic Selection of the Number of Clusters",
+  author   = person(given = c("Komlan", "Midodzi"), family = "Noukpoape",
+                    email = "noukpoape@gmail.com"),
+  year     = "2026",
+  note     = "R package version 1.0.0",
+  url      = "https://github.com/noukpoape/InfoMergeCluster",
+  textVersion = paste(
+    "Noukpoape, K. M. (2026).",
+    "InfoMergeCluster: Clustering of Sparse Longitudinal Data with Automatic",
+    "Selection of the Number of Clusters. R package version 1.0.0.",
+    "https://github.com/noukpoape/InfoMergeCluster"
+  )
+)

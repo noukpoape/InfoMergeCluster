@@ -3,8 +3,8 @@ Type: Package
 Title: Clustering of Sparse Longitudinal Data with Automatic Selection of the Number of Clusters
 Version: 1.0.0
 Authors@R:
-    person(given = "Komlan Midodzi",
-           family = "NOUKPOAPE",
+    person(given = c("Komlan", "Midodzi"),
+           family = "Noukpoape",
            role = c("aut", "cre"),
            email = "noukpoape@gmail.com")
 Description: Model-based clustering of sparse and irregular longitudinal

@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "InfoMergeCluster: Clustering of Sparse Longitudinal Data with Automatic Selection of the Number of Clusters"
+version: 1.0.0
+date-released: 2026-10-12
+license: MIT
+repository-code: "https://github.com/noukpoape/InfoMergeCluster"
+url: "https://github.com/noukpoape/InfoMergeCluster"
+authors:
+  - given-names: Komlan Midodzi
+    family-names: Noukpoape
+    email: noukpoape@gmail.com
+keywords:
+  - R
+  - clustering
+  - longitudinal data
+  - sparse data
+  - mixture models
+  - B-splines
