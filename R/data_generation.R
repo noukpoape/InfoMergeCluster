@@ -22,31 +22,63 @@ fsenario <- function(x, senario, k, cst = 0) {
          rnorm(1, -0.25, 0.25) + cst + cos(w*pi*x) - x^2 + rnorm(1, 2, 0.3))
 }
 
+# reference group sizes n.k of each scenario (used when n.k = NULL);
+# the reference shifts are n.cts = 1.8 + 0.6 * (k - 1) for group k
+.fsen_nk <- list(c(20, 30), c(20, 30, 25), c(20, 30, 25, 35), c(20, 30, 25, 35, 40))
+
 #' Generate test data (scenarios 1 to 4)
 #'
 #' Generates curves from several groups following one of four scenarios,
 #' and returns them both as a list of matrices and as a long data.frame
 #' (the two formats contain exactly the same data).
 #'
+#' Each curve is observed at \code{n.min + Binomial(8, 0.5)} sorted uniform
+#' times on [0, 1]; its group sets the mean shape and the constant shift.
+#'
+#' \strong{Reference settings of each scenario.} When \code{n.k} and
+#' \code{n.cts} are left to \code{NULL}, the following default values are used:
+#' \tabular{clll}{
+#'   \strong{Scenario} \tab \strong{Groups} \tab \strong{Group sizes} \code{n.k} \tab \strong{Shifts} \code{n.cts} \cr
+#'   1 \tab 2 \tab \code{c(20, 30)} (50 curves) \tab \code{c(1.8, 2.4)} \cr
+#'   2 \tab 3 \tab \code{c(20, 30, 25)} (75 curves) \tab \code{c(1.8, 2.4, 3.0)} \cr
+#'   3 \tab 4 \tab \code{c(20, 30, 25, 35)} (110 curves) \tab \code{c(1.8, 2.4, 3.0, 3.6)} \cr
+#'   4 \tab 5 \tab \code{c(20, 30, 25, 35, 40)} (150 curves) \tab \code{c(1.8, 2.4, 3.0, 3.6, 4.2)} \cr
+#' }
+#' Other group sizes can be given in \code{n.k}; the default shifts are then
+#' \code{1.8 + 0.6 * (k - 1)} for group \code{k}.
+#'
 #' @param senario scenario (1 to 4).
-#' @param n.k number of curves in each group.
-#' @param n.cts constant shift of each group.
+#' @param n.k number of curves in each group (\code{NULL} = reference sizes
+#'   of the scenario, see Details).
+#' @param n.cts constant shift of each group, one value per group
+#'   (\code{NULL} = reference shifts, see Details).
 #' @param n.min minimum number of measurements per curve.
 #' @return A list with \code{liste} (list of matrices (x, y), one per curve,
 #'   with a \code{"groupe"} attribute) and \code{df} (data.frame with columns
 #'   \code{id}, \code{groupe}, \code{x}, \code{y}).
 #' @examples
-#' # scenario 2, as a list of matrices or as a long data.frame
-#' set.seed(2)
-#' gen <- f.data.generation(senario = 2, n.k = c(20, 30))
+#' # scenario 1 with its reference settings: 2 groups of 20 and 30 curves
+#' set.seed(1)
+#' gen <- f.data.generation(senario = 1)
 #' plot.data(gen$liste, legend = TRUE)
 #' plot.data(gen$df, data.forma = 2)
+#'
+#' # reference settings of the other scenarios
+#' table(attr(f.data.generation(senario = 2)$liste, "groupe"))
+#' table(attr(f.data.generation(senario = 4)$liste, "groupe"))
 #' @export
-f.data.generation <- function(senario = 1, n.k = c(20, 30), n.cts = c(1.8, 2.4), n.min = 2) {
+f.data.generation <- function(senario = 1, n.k = NULL, n.cts = NULL, n.min = 2) {
   
   # Output: list(liste = ..., df = ...)
   #   liste : list of matrices (x, y), one per curve ("groupe" attribute)
   #   df    : data.frame (id, groupe, x, y)
+  
+  # reference settings of the scenario when n.k / n.cts are not supplied
+  s <- if (senario %in% 1:3) senario else 4L
+  if (is.null(n.k)) n.k <- .fsen_nk[[s]]
+  if (is.null(n.cts)) n.cts <- 1.8 + 0.6 * (seq_along(n.k) - 1)
+  if (length(n.cts) < length(n.k))
+    stop("'n.cts' must contain one value per group (length(n.k) = ", length(n.k), ").")
   
   K <- length(n.k)
   

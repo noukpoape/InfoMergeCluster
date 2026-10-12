@@ -8,4 +8,5 @@
   clusters.
 * Methods `print()`, `plot()` and `predict()` (confidence and prediction
   envelopes), `fitted_curves()` and `infomergecluster_stability()`.
-* Data generators `simulate_sparse_longitudinal()` and `f.data.generation()`.
+* Data generator `f.data.generation()` (scenarios 1 to 4, each with reference
+  group sizes and shifts used by default) and `plot.data()`.

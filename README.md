@@ -29,15 +29,16 @@ remotes::install_github("noukpoape/InfoMergeCluster")
 
 ## Usage
 
-The example below uses scenario 2 of the built-in data generator:
-50 curves in 2 groups (20 and 30 curves), each observed at a few random times.
+The example below uses scenario 1 of the built-in data generator with its
+reference settings: 50 curves in 2 groups (20 and 30 curves), each observed
+at a few random times.
 
 ```r
 library(InfoMergeCluster)
 
-# scenario 2: 2 groups of 20 and 30 curves
-set.seed(2)
-gen <- f.data.generation(senario = 2, n.k = c(20, 30))
+# scenario 1: 2 groups of 20 and 30 curves
+set.seed(1)
+gen <- f.data.generation(senario = 1)
 true_groups <- attr(gen$liste, "groupe")
 
 # trajectories with their true groups
@@ -68,8 +69,22 @@ st <- infomergecluster_stability(gen$df, K_max = 5, seeds = 1:5)
 st$stability$mean_ari
 ```
 
-Larger simulated data sets (several hundred subjects, up to 6 clusters) can be
-generated with `simulate_sparse_longitudinal()`.
+## Simulated scenarios
+
+`f.data.generation()` provides four scenarios. When `n.k` and `n.cts` are not
+supplied, each scenario uses its reference settings:
+
+| Scenario | Groups | Group sizes `n.k`                  | Shifts `n.cts`                  |
+|:--------:|:------:|------------------------------------|---------------------------------|
+| 1        | 2      | `c(20, 30)` (50 curves)            | `c(1.8, 2.4)`                   |
+| 2        | 3      | `c(20, 30, 25)` (75 curves)        | `c(1.8, 2.4, 3.0)`              |
+| 3        | 4      | `c(20, 30, 25, 35)` (110 curves)   | `c(1.8, 2.4, 3.0, 3.6)`         |
+| 4        | 5      | `c(20, 30, 25, 35, 40)` (150 curves) | `c(1.8, 2.4, 3.0, 3.6, 4.2)`  |
+
+```r
+gen3 <- f.data.generation(senario = 3)                  # reference settings
+gen3b <- f.data.generation(senario = 3, n.k = c(50, 50, 50, 50))   # custom sizes
+```
 
 ## Main arguments of `infomergecluster()`
 

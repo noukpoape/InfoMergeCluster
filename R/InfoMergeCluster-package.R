@@ -15,8 +15,8 @@
 #'     mean curves and envelopes;
 #'   \item \code{\link{fitted_curves}}: predicted individual trajectories;
 #'   \item \code{\link{infomergecluster_stability}}: stability across seeds;
-#'   \item \code{\link{simulate_sparse_longitudinal}}, \code{\link{f.data.generation}}:
-#'     simulated data.
+#'   \item \code{\link{f.data.generation}}, \code{\link{plot.data}}:
+#'     simulated data (scenarios 1 to 4) and their plot.
 #' }
 #'
 #' @keywords internal

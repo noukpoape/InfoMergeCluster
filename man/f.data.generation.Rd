@@ -3,14 +3,16 @@
 \alias{f.data.generation}
 \title{Generate test data (scenarios 1 to 4)}
 \usage{
-f.data.generation(senario = 1, n.k = c(20, 30), n.cts = c(1.8, 2.4), n.min = 2)
+f.data.generation(senario = 1, n.k = NULL, n.cts = NULL, n.min = 2)
 }
 \arguments{
 \item{senario}{scenario (1 to 4).}
 
-\item{n.k}{number of curves in each group.}
+\item{n.k}{number of curves in each group (\code{NULL} = reference sizes
+  of the scenario, see Details).}
 
-\item{n.cts}{constant shift of each group.}
+\item{n.cts}{constant shift of each group, one value per group
+  (\code{NULL} = reference shifts, see Details).}
 
 \item{n.min}{minimum number of measurements per curve.}
 }
@@ -24,10 +26,30 @@ Generates curves from several groups following one of four scenarios,
 and returns them both as a list of matrices and as a long data.frame
 (the two formats contain exactly the same data).
 }
+\details{
+Each curve is observed at \code{n.min + Binomial(8, 0.5)} sorted uniform
+times on [0, 1]; its group sets the mean shape and the constant shift.
+
+\strong{Reference settings of each scenario.} When \code{n.k} and
+\code{n.cts} are left to \code{NULL}, the following default values are used:
+\tabular{clll}{
+  \strong{Scenario} \tab \strong{Groups} \tab \strong{Group sizes} \code{n.k} \tab \strong{Shifts} \code{n.cts} \cr
+  1 \tab 2 \tab \code{c(20, 30)} (50 curves) \tab \code{c(1.8, 2.4)} \cr
+  2 \tab 3 \tab \code{c(20, 30, 25)} (75 curves) \tab \code{c(1.8, 2.4, 3.0)} \cr
+  3 \tab 4 \tab \code{c(20, 30, 25, 35)} (110 curves) \tab \code{c(1.8, 2.4, 3.0, 3.6)} \cr
+  4 \tab 5 \tab \code{c(20, 30, 25, 35, 40)} (150 curves) \tab \code{c(1.8, 2.4, 3.0, 3.6, 4.2)} \cr
+}
+Other group sizes can be given in \code{n.k}; the default shifts are then
+\code{1.8 + 0.6 * (k - 1)} for group \code{k}.
+}
 \examples{
-# scenario 2, as a list of matrices or as a long data.frame
-set.seed(2)
-gen <- f.data.generation(senario = 2, n.k = c(20, 30))
+# scenario 1 with its reference settings: 2 groups of 20 and 30 curves
+set.seed(1)
+gen <- f.data.generation(senario = 1)
 plot.data(gen$liste, legend = TRUE)
 plot.data(gen$df, data.forma = 2)
+
+# reference settings of the other scenarios
+table(attr(f.data.generation(senario = 2)$liste, "groupe"))
+table(attr(f.data.generation(senario = 4)$liste, "groupe"))
 }

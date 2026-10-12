@@ -1,5 +1,6 @@
-dat <- simulate_sparse_longitudinal(N = 120, K = 2, seed = 42)
-long <- dat[, c("id", "time", "y")]
+set.seed(42)
+gen <- f.data.generation(senario = 1, n.k = c(60, 60))
+long <- gen$df
 
 test_that("imposed K returns exactly K clusters", {
   fit <- infomergecluster(long, K = 2, verbose = FALSE, seed = 1)
@@ -34,7 +35,7 @@ test_that("predict and fitted_curves have the expected shape", {
 })
 
 test_that("list input is accepted", {
-  lst <- split(long[, c("time", "y")], long$id)
+  lst <- split(long[, c("x", "y")], long$id)
   fit <- infomergecluster(lst, K = 2, verbose = FALSE, seed = 3)
   expect_equal(fit$K, 2L)
   expect_setequal(names(fit$cluster), names(lst))
@@ -46,13 +47,22 @@ test_that("adjusted_rand is 1 for identical partitions", {
   expect_equal(adjusted_rand(a, c(3, 1, 2)[a]), 1)
 })
 
-test_that("scenario 2 example runs with both data formats", {
-  set.seed(2)
-  gen <- f.data.generation(senario = 2, n.k = c(20, 30))
-  f_df <- infomergecluster(gen$df, K = 2, verbose = FALSE, seed = 1)
-  f_ls <- infomergecluster(gen$liste, K = 2, verbose = FALSE, seed = 1)
+test_that("scenario 1 example runs with both data formats", {
+  set.seed(1)
+  g1 <- f.data.generation(senario = 1)
+  f_df <- infomergecluster(g1$df, K = 2, verbose = FALSE, seed = 1)
+  f_ls <- infomergecluster(g1$liste, K = 2, verbose = FALSE, seed = 1)
   expect_equal(f_df$K, 2L)
   expect_equal(f_ls$K, 2L)
   expect_length(f_df$cluster, 50)
-  expect_equal(nrow(table(f_df$cluster, attr(gen$liste, "groupe"))), 2L)
+})
+
+test_that("f.data.generation uses the reference settings of each scenario", {
+  sizes <- list(c(20, 30), c(20, 30, 25), c(20, 30, 25, 35), c(20, 30, 25, 35, 40))
+  for (s in 1:4) {
+    g <- f.data.generation(senario = s)
+    expect_equal(as.vector(table(attr(g$liste, "groupe"))), sizes[[s]])
+    expect_false(anyNA(g$df$y))
+  }
+  expect_error(f.data.generation(senario = 1, n.k = c(10, 10, 10), n.cts = c(1, 2)))
 })

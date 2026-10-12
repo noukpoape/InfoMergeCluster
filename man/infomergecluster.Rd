@@ -134,9 +134,9 @@ directly with \code{K} clusters (one tree for the initialization, then a
 single EM), with no outer loop and no pruning.
 }
 \examples{
-# scenario 2: 50 curves in 2 groups (20 and 30 curves)
-set.seed(2)
-gen <- f.data.generation(senario = 2, n.k = c(20, 30))
+# scenario 1 with its reference settings: 2 groups of 20 and 30 curves
+set.seed(1)
+gen <- f.data.generation(senario = 1)
 plot.data(gen$liste, legend = TRUE)
 
 # number of clusters imposed
