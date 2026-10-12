@@ -25,7 +25,9 @@ and returns them both as a list of matrices and as a long data.frame
 (the two formats contain exactly the same data).
 }
 \examples{
-set.seed(1)
-dat <- f.data.generation(senario = 1, n.k = c(20, 30))
-plot.data(dat$liste)
+# scenario 2, as a list of matrices or as a long data.frame
+set.seed(2)
+gen <- f.data.generation(senario = 2, n.k = c(20, 30))
+plot.data(gen$liste, legend = TRUE)
+plot.data(gen$df, data.forma = 2)
 }

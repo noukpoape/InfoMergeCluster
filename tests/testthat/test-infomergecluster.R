@@ -45,3 +45,14 @@ test_that("adjusted_rand is 1 for identical partitions", {
   expect_equal(adjusted_rand(a, a), 1)
   expect_equal(adjusted_rand(a, c(3, 1, 2)[a]), 1)
 })
+
+test_that("scenario 2 example runs with both data formats", {
+  set.seed(2)
+  gen <- f.data.generation(senario = 2, n.k = c(20, 30))
+  f_df <- infomergecluster(gen$df, K = 2, verbose = FALSE, seed = 1)
+  f_ls <- infomergecluster(gen$liste, K = 2, verbose = FALSE, seed = 1)
+  expect_equal(f_df$K, 2L)
+  expect_equal(f_ls$K, 2L)
+  expect_length(f_df$cluster, 50)
+  expect_equal(nrow(table(f_df$cluster, attr(gen$liste, "groupe"))), 2L)
+})

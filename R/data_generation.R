@@ -36,9 +36,11 @@ fsenario <- function(x, senario, k, cst = 0) {
 #'   with a \code{"groupe"} attribute) and \code{df} (data.frame with columns
 #'   \code{id}, \code{groupe}, \code{x}, \code{y}).
 #' @examples
-#' set.seed(1)
-#' dat <- f.data.generation(senario = 1, n.k = c(20, 30))
-#' plot.data(dat$liste)
+#' # scenario 2, as a list of matrices or as a long data.frame
+#' set.seed(2)
+#' gen <- f.data.generation(senario = 2, n.k = c(20, 30))
+#' plot.data(gen$liste, legend = TRUE)
+#' plot.data(gen$df, data.forma = 2)
 #' @export
 f.data.generation <- function(senario = 1, n.k = c(20, 30), n.cts = c(1.8, 2.4), n.min = 2) {
   

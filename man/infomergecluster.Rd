@@ -134,16 +134,19 @@ directly with \code{K} clusters (one tree for the initialization, then a
 single EM), with no outer loop and no pruning.
 }
 \examples{
-dat <- simulate_sparse_longitudinal(N = 150, K = 3, seed = 1)
+# scenario 2: 50 curves in 2 groups (20 and 30 curves)
+set.seed(2)
+gen <- f.data.generation(senario = 2, n.k = c(20, 30))
+plot.data(gen$liste, legend = TRUE)
 
 # number of clusters imposed
-fit3 <- infomergecluster(dat[, c("id", "time", "y")], K = 3, verbose = FALSE)
-fit3
-table(fit3$cluster, dat$true_class[!duplicated(dat$id)])
+fit2 <- infomergecluster(gen$df, K = 2, verbose = FALSE)
+fit2
+table(fit2$cluster, attr(gen$liste, "groupe"))
 
 \donttest{
 # number of clusters selected by BIC
-fit <- infomergecluster(dat[, c("id", "time", "y")], K_max = 5, verbose = FALSE)
+fit <- infomergecluster(gen$df, K_max = 5, verbose = FALSE)
 plot(fit, envelope = TRUE)
 }
 }

@@ -29,41 +29,47 @@ remotes::install_github("noukpoape/InfoMergeCluster")
 
 ## Usage
 
+The example below uses scenario 2 of the built-in data generator:
+50 curves in 2 groups (20 and 30 curves), each observed at a few random times.
+
 ```r
 library(InfoMergeCluster)
 
-# simulated data: 300 subjects, 3 true clusters, 2 to 5 measurements each
-dat <- simulate_sparse_longitudinal(N = 300, K = 3, seed = 1)
+# scenario 2: 2 groups of 20 and 30 curves
+set.seed(2)
+gen <- f.data.generation(senario = 2, n.k = c(20, 30))
+true_groups <- attr(gen$liste, "groupe")
 
-# long data.frame: 1st column = subject id, second-to-last = time, last = response
-fit <- infomergecluster(dat[, c("id", "time", "y")], K_max = 6)
+# trajectories with their true groups
+plot.data(gen$liste, legend = TRUE)
+
+# automatic selection of the number of clusters (BIC)
+# gen$df is a long data.frame: 1st column = id, second-to-last = time, last = response
+fit <- infomergecluster(gen$df, K_max = 5)
 fit                                   # selected K, proportions, criteria
 plot(fit, envelope = TRUE)            # trajectories, mean curves, 95% band
 
 # number of clusters imposed by the user (no selection)
-fit3 <- infomergecluster(dat[, c("id", "time", "y")], K = 3)
+fit2 <- infomergecluster(gen$df, K = 2)
+
+# the list format (one matrix per curve) gives the same kind of fit
+fit2_list <- infomergecluster(gen$liste, K = 2)
+
+# agreement with the true groups
+table(fit2$cluster, true_groups)
+adjusted_rand(fit2$cluster, true_groups)
 
 # mean curves with prediction envelope, predicted individual curves
-head(predict(fit3, interval = "prediction"))
-curves <- fitted_curves(fit3)
-
-# agreement with the true classes
-adjusted_rand(fit3$cluster, dat$true_class[!duplicated(dat$id)])
+head(predict(fit2, interval = "prediction"))
+curves <- fitted_curves(fit2)
 
 # stability across seeds
-st <- infomergecluster_stability(dat[, c("id", "time", "y")], K_max = 6, seeds = 1:5)
+st <- infomergecluster_stability(gen$df, K_max = 5, seeds = 1:5)
 st$stability$mean_ari
 ```
 
-Data can also be supplied as a list with one data.frame or matrix per subject
-(second-to-last column = time, last column = response):
-
-```r
-set.seed(1)
-gen <- f.data.generation(senario = 1, n.k = c(20, 30))
-plot.data(gen$liste)
-fit <- infomergecluster(gen$liste, K = 2)
-```
+Larger simulated data sets (several hundred subjects, up to 6 clusters) can be
+generated with `simulate_sparse_longitudinal()`.
 
 ## Main arguments of `infomergecluster()`
 
