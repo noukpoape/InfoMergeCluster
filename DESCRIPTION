@@ -1,0 +1,38 @@
+Package: InfoMergeCluster
+Type: Package
+Title: Clustering of Sparse Longitudinal Data with Automatic Selection of the Number of Clusters
+Version: 1.0.0
+Authors@R:
+    person(given = "Komlan Midodzi",
+           family = "NOUKPOAPE",
+           role = c("aut", "cre"),
+           email = "noukpoape@gmail.com")
+Description: Model-based clustering of sparse and irregular longitudinal
+    data. Each cluster has a penalized B-spline mean trajectory (O'Sullivan
+    penalty with an automatically estimated smoothing parameter) and
+    subject-specific deviations are captured by a random effect (intercept,
+    linear or spline). Conjugate priors calibrated on the empirical variogram
+    of the residuals stabilize the variance components. The EM algorithm,
+    accelerated by SQUAREM, works on subject-level sufficient statistics and
+    is initialized by a merge tree of micro-clusters based on the exact
+    integrated completed likelihood. The number of clusters is selected by
+    BIC or ICL, or can be imposed by the user. Tools are provided for
+    confidence and prediction envelopes, predicted individual trajectories
+    and stability across random seeds.
+License: MIT + file LICENSE
+URL: https://github.com/noukpoape/InfoMergeCluster
+BugReports: https://github.com/noukpoape/InfoMergeCluster/issues
+Depends:
+    R (>= 3.6.0)
+Imports:
+    graphics,
+    grDevices,
+    splines,
+    stats,
+    utils
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Encoding: UTF-8
+Roxygen: list(markdown = FALSE)
+RoxygenNote: 7.3.2
