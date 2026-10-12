@@ -91,8 +91,7 @@
   } else {
     Psi0 <- as.matrix(Psi0)
     if (!all(dim(Psi0) == q))
-      stop(sprintf("'prior$Psi0' must be a %d x %d matrix (or a scalar, ", q, q),
-           "in particular with re = \"auto\").")
+      stop(sprintf("'prior$Psi0' must be a %d x %d matrix or a scalar.", q, q))
     Psi0 <- (Psi0 + t(Psi0)) / 2
     if (inherits(tryCatch(chol(Psi0), error = function(e) e), "error"))
       stop("'prior$Psi0' must be positive definite.")

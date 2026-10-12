@@ -54,11 +54,6 @@ print.infomergecluster <- function(x, ...) {
         paste(sprintf("K=%s: %d", names(st$K_freq), as.integer(st$K_freq)), collapse = ", "),
         "\n\n")
   }
-  if (!is.null(x$re_table) && nrow(x$re_table) > 1) {
-    cat("Comparison of random-effect structures:\n")
-    print(x$re_table, row.names = FALSE)
-    cat("\n")
-  }
   tab <- x$table
   num <- c("loglik", "edf", "n_par", "BIC", "ICL", "entropy")
   tab[num] <- lapply(tab[num], round, 2)

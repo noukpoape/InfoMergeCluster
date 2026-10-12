@@ -4,11 +4,11 @@
 \title{Cluster sparse longitudinal data}
 \usage{
 infomergecluster(data, K_max = 8, K = NULL, df = 15, degree = 3,
-  penalty = TRUE, pen_order = 2,
-  re = c("linear", "intercept", "spline", "auto"), s2_min = 1e-6,
-  prior = list(), min_size = 2, K0 = NULL, criterion = c("BIC", "ICL"),
-  a_dir = 0.5, n_outer = 3, quick_cycles = 4, full_cycles = 15, inner_cap = 3,
-  tol = 1e-5, nstart = 5, seed = NULL, keep_data = TRUE, verbose = TRUE)
+  penalty = TRUE, pen_order = 2, re = c("linear", "intercept", "spline"),
+  s2_min = 1e-6, prior = list(), min_size = 2, K0 = NULL,
+  criterion = c("BIC", "ICL"), a_dir = 0.5, n_outer = 3, quick_cycles = 4,
+  full_cycles = 15, inner_cap = 3, tol = 1e-5, nstart = 5, seed = NULL,
+  keep_data = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{data}{data, in one of the following forms (columns are identified
@@ -36,9 +36,9 @@ infomergecluster(data, K_max = 8, K = NULL, df = 15, degree = 3,
 \item{pen_order}{order m of the penalized derivative
   (\eqn{1 \le m \le} \code{degree}; 2 = curvature).}
 
-\item{re}{random effect: \code{"linear"}, \code{"intercept"},
-  \code{"spline"} or \code{"auto"} (all three are fitted, the best
-  criterion wins).}
+\item{re}{random-effect structure: \code{"linear"} (random intercept and
+  slope, default), \code{"intercept"} (random intercept) or
+  \code{"spline"} (random effect on the B-spline basis).}
 
 \item{s2_min}{floor on the residual variance, as a fraction of var(y).}
 
@@ -51,8 +51,7 @@ infomergecluster(data, K_max = 8, K = NULL, df = 15, degree = 3,
   \code{nugget} (imposed nugget; \code{NULL} = estimated from the
   variogram), \code{Psi0} (optional; \eqn{q \times q} matrix or scalar
   \eqn{c} for \eqn{c I_q}) and \code{b_sigma} (optional; replaces
-  \code{(a_sigma + 1) * nugget}). With \code{re = "auto"}, give
-  \code{Psi0} as a scalar.}
+  \code{(a_sigma + 1) * nugget}).}
 
 \item{min_size}{minimum cluster size (posterior size \eqn{N \pi_k}).}
 
@@ -96,8 +95,7 @@ An object of class \code{"infomergecluster"}, a list containing
     smoothing parameter.}
   \item{loglik, edf}{log-likelihood and effective degrees of freedom.}
   \item{table}{criteria (log-likelihood, BIC, ICL, entropy) of every fitted K.}
-  \item{re, re_table}{selected random-effect structure and comparison of
-    the structures (with \code{re = "auto"}).}
+  \item{re}{random-effect structure used.}
   \item{prior, variogram}{hyperparameters and empirical variogram.}
   \item{basis, data}{B-spline basis and data in long format.}
 }

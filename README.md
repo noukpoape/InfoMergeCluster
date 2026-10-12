@@ -9,8 +9,8 @@ measurements per subject — into clusters of similar trajectories.
 
 - Each cluster has a smooth mean trajectory (penalized B-splines, smoothing
   parameter estimated automatically).
-- Individual deviations are captured by a random effect: intercept, linear or
-  spline (`re = "auto"` picks the best).
+- Individual deviations are captured by a random effect: intercept, linear
+  (default) or spline.
 - Conjugate priors on the variance structure, calibrated on the empirical
   variogram of the residuals, stabilize the fit.
 - The number of clusters is selected by BIC or ICL, or imposed with `K`.
@@ -93,7 +93,7 @@ gen3b <- f.data.generation(senario = 3, n.k = c(50, 50, 50, 50))   # custom size
 | `K`         | imposed number of clusters (`NULL` = automatic selection)            |
 | `K_max`     | largest number of clusters examined when `K = NULL`                  |
 | `criterion` | `"BIC"` or `"ICL"`                                                   |
-| `re`        | random effect: `"linear"`, `"intercept"`, `"spline"` or `"auto"`     |
+| `re`        | random effect: `"linear"` (default), `"intercept"` or `"spline"`     |
 | `df`        | number of B-spline functions                                         |
 | `prior`     | priors on the variance structure (`NULL` = maximum likelihood)       |
 | `min_size`  | minimum cluster size                                                 |

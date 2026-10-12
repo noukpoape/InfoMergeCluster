@@ -51,9 +51,9 @@
 #'   (\code{TRUE} recommended).
 #' @param pen_order order m of the penalized derivative
 #'   (\eqn{1 \le m \le} \code{degree}; 2 = curvature).
-#' @param re random effect: \code{"linear"}, \code{"intercept"},
-#'   \code{"spline"} or \code{"auto"} (all three are fitted, the best
-#'   criterion wins).
+#' @param re random-effect structure: \code{"linear"} (random intercept and
+#'   slope, default), \code{"intercept"} (random intercept) or
+#'   \code{"spline"} (random effect on the B-spline basis).
 #' @param s2_min floor on the residual variance, as a fraction of var(y).
 #' @param prior priors on the variance structure. \code{NULL} (or
 #'   \code{FALSE}) gives maximum likelihood. Otherwise a list whose missing
@@ -64,8 +64,7 @@
 #'   \code{nugget} (imposed nugget; \code{NULL} = estimated from the
 #'   variogram), \code{Psi0} (optional; \eqn{q \times q} matrix or scalar
 #'   \eqn{c} for \eqn{c I_q}) and \code{b_sigma} (optional; replaces
-#'   \code{(a_sigma + 1) * nugget}). With \code{re = "auto"}, give
-#'   \code{Psi0} as a scalar.
+#'   \code{(a_sigma + 1) * nugget}).
 #' @param min_size minimum cluster size (posterior size \eqn{N \pi_k}).
 #' @param K0 number of micro-clusters of the tree (\code{NULL} = automatic).
 #' @param criterion \code{"BIC"} (target: mixture components) or
@@ -95,8 +94,7 @@
 #'     smoothing parameter.}
 #'   \item{loglik, edf}{log-likelihood and effective degrees of freedom.}
 #'   \item{table}{criteria (log-likelihood, BIC, ICL, entropy) of every fitted K.}
-#'   \item{re, re_table}{selected random-effect structure and comparison of
-#'     the structures (with \code{re = "auto"}).}
+#'   \item{re}{random-effect structure used.}
 #'   \item{prior, variogram}{hyperparameters and empirical variogram.}
 #'   \item{basis, data}{B-spline basis and data in long format.}
 #'
@@ -123,7 +121,7 @@
 #' @export
 infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
                              penalty = TRUE, pen_order = 2,
-                             re = c("linear", "intercept", "spline", "auto"),
+                             re = c("linear", "intercept", "spline"),
                              s2_min = 1e-6, prior = list(), min_size = 2, K0 = NULL,
                              criterion = c("BIC", "ICL"), a_dir = 0.5,
                              n_outer = 3, quick_cycles = 4, full_cycles = 15,
@@ -159,24 +157,9 @@ infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
                quick_cycles = quick_cycles, full_cycles = full_cycles,
                inner_cap = inner_cap, tol = tol, nstart = nstart, verbose = verbose)
   
-  re_list <- if (re == "auto") c("intercept", "linear", "spline") else re
-  res <- list()
-  for (r in re_list) {
-    if (!is.null(seed)) set.seed(seed)
-    if (verbose) message(sprintf("--- random effect: %s", r))
-    res[[r]] <- do.call(.im_fit_one, c(list(d = d, re = r), args))
-  }
-  
-  crit_of <- function(f) {
-    row <- f$table[f$table$K == f$K, ]
-    if (criterion == "BIC") row$BIC else row$ICL
-  }
-  scores <- vapply(res, crit_of, numeric(1))
-  out <- res[[which.min(scores)]]
-  out$re_table <- data.frame(re = names(res), K = vapply(res, function(f) as.integer(f$K), integer(1)),
-                             criterion = scores, row.names = NULL)
-  if (verbose && length(res) > 1)
-    message(sprintf("Selected structure: %s (K = %d)", out$re, out$K))
+  if (!is.null(seed)) set.seed(seed)
+  if (verbose) message(sprintf("--- random effect: %s", re))
+  out <- do.call(.im_fit_one, c(list(d = d, re = re), args))
   out$time_sec <- proc.time()[["elapsed"]] - t_start
   out$data <- if (keep_data) d else NULL
   out
