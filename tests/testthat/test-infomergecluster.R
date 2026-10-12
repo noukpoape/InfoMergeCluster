@@ -66,3 +66,13 @@ test_that("f.data.generation uses the reference settings of each scenario", {
   }
   expect_error(f.data.generation(senario = 1, n.k = c(10, 10, 10), n.cts = c(1, 2)))
 })
+
+test_that("infomergecluster_citation returns the BibTeX entry", {
+  ref <- infomergecluster_citation()
+  expect_match(ref, "^@manual\\{noukpoape2026infomergecluster,")
+  expect_match(ref, "author=\\{Noukpoape, Komlan Midodzi\\}")
+  expect_match(infomergecluster_citation("text"), "^Noukpoape, K. M. \\(2026\\)")
+  bib <- tempfile(fileext = ".bib")
+  infomergecluster_citation(file = bib)
+  expect_true(file.exists(bib))
+})

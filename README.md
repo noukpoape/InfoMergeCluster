@@ -120,13 +120,20 @@ BibTeX:
 }
 ```
 
-The same reference is returned in R by:
+The package itself gives this reference:
 
 ```r
-citation("InfoMergeCluster")
+library(InfoMergeCluster)
+infomergecluster_citation()                     # BibTeX entry above
+infomergecluster_citation("text")               # plain-text reference
+infomergecluster_citation(file = "refs.bib")    # append it to a .bib file
+citation("InfoMergeCluster")                    # standard R citation
+
+# the .bib file installed with the package
+system.file("CITATION.bib", package = "InfoMergeCluster")
 ```
 
-and is available on GitHub through the **Cite this repository** button
+It is also available on GitHub through the **Cite this repository** button
 (file `CITATION.cff`).
 
 ## Author

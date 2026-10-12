@@ -16,7 +16,22 @@
 #'   \item \code{\link{fitted_curves}}: predicted individual trajectories;
 #'   \item \code{\link{infomergecluster_stability}}: stability across seeds;
 #'   \item \code{\link{f.data.generation}}, \code{\link{plot.data}}:
-#'     simulated data (scenarios 1 to 4) and their plot.
+#'     simulated data (scenarios 1 to 4) and their plot;
+#'   \item \code{\link{infomergecluster_citation}}: how to cite the package.
+#' }
+#'
+#' @section Citation:
+#' To cite InfoMergeCluster in publications, use
+#' \code{infomergecluster_citation()}, which prints the BibTeX entry:
+#' \preformatted{
+#' @@manual{noukpoape2026infomergecluster,
+#'   title={InfoMergeCluster: Clustering of Sparse Longitudinal Data with
+#'          Automatic Selection of the Number of Clusters},
+#'   author={Noukpoape, Komlan Midodzi},
+#'   year={2026},
+#'   note={R package version 1.0.0},
+#'   url={https://github.com/noukpoape/InfoMergeCluster}
+#' }
 #' }
 #'
 #' @keywords internal

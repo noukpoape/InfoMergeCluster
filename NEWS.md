@@ -10,3 +10,5 @@
   envelopes), `fitted_curves()` and `infomergecluster_stability()`.
 * Data generator `f.data.generation()` (scenarios 1 to 4, each with reference
   group sizes and shifts used by default) and `plot.data()`.
+* `infomergecluster_citation()`: BibTeX entry (Google Scholar format) or plain-text
+  reference of the package; the entry is also installed as `CITATION.bib`.
