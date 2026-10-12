@@ -1,6 +1,6 @@
 bibentry(
   bibtype  = "Manual",
-  key      = "Noukpoape2026InfoMergeCluster",
+  key      = "noukpoape2026infomergecluster",
   title    = "{InfoMergeCluster}: Clustering of Sparse Longitudinal Data with Automatic Selection of the Number of Clusters",
   author   = person(given = c("Komlan", "Midodzi"), family = "Noukpoape",
                     email = "noukpoape@gmail.com"),

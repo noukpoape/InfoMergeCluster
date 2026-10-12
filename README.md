@@ -108,15 +108,15 @@ If you use `InfoMergeCluster` in a publication, please cite it as:
 > Longitudinal Data with Automatic Selection of the Number of Clusters.*
 > R package version 1.0.0. https://github.com/noukpoape/InfoMergeCluster
 
-BibTeX entry:
+BibTeX:
 
 ```bibtex
-@Manual{Noukpoape2026InfoMergeCluster,
-  title  = {{InfoMergeCluster}: Clustering of Sparse Longitudinal Data with Automatic Selection of the Number of Clusters},
-  author = {Komlan Midodzi Noukpoape},
-  year   = {2026},
-  note   = {R package version 1.0.0},
-  url    = {https://github.com/noukpoape/InfoMergeCluster},
+@manual{noukpoape2026infomergecluster,
+  title={InfoMergeCluster: Clustering of Sparse Longitudinal Data with Automatic Selection of the Number of Clusters},
+  author={Noukpoape, Komlan Midodzi},
+  year={2026},
+  note={R package version 1.0.0},
+  url={https://github.com/noukpoape/InfoMergeCluster}
 }
 ```
 
