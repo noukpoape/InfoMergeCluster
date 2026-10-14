@@ -192,7 +192,7 @@ cluster-specific effects $`\boldsymbol\gamma_k`$:
 ```
 
 The basis is augmented to $`[\mathbf{B}_i \mid \mathbf{X}_i]`$ and the penalty to
-$`\operatorname{diag}(\mathbf{P}, \mathbf{0})`$ ($`\boldsymbol\gamma_k`$ is not
+$`\mathrm{diag}(\mathbf{P}, \mathbf{0})`$ ($`\boldsymbol\gamma_k`$ is not
 smoothed); the information statistics, the EM and the exact merge cost are
 unchanged in dimension $`p + r`$. Covariates are centered, so that
 $`\boldsymbol\beta_k`$ describes the mean trajectory at the mean covariate values.
@@ -209,7 +209,7 @@ The model is fitted for $`K = 1, \dots, K_{\max}`$ and the minimum of
 ```math
 \mathrm{BIC}(K) = -2\, \ell(\hat{\boldsymbol\theta}_K) + d_K \log N,
 \qquad
-d_K = (K - 1) + \underbrace{\sum_k \operatorname{tr}\big(\mathbf{H}_k^{-1} \mathbf{A}^{(k)}\big)}_{\text{effective degrees of freedom}} + \frac{q(q+1)}{2} + 1
+d_K = (K - 1) + \underbrace{\sum_k \mathrm{tr}\big(\mathbf{H}_k^{-1} \mathbf{A}^{(k)}\big)}_{\text{effective degrees of freedom}} + \frac{q(q+1)}{2} + 1
 ```
 
 is retained (the ICL adds the entropy of the partition). Since the grid starts
