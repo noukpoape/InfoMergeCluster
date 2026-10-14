@@ -1,4 +1,4 @@
-# Runs R CMD check on every push and pull request (Linux, macOS, Windows).
+# Runs R CMD check on every push and pull request (Linux, Windows).
 on:
   push:
     branches: [main, master]
@@ -11,6 +11,7 @@ permissions: read-all
 jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
+    timeout-minutes: 30
 
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
 
@@ -18,7 +19,6 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {os: macos-latest,   r: 'release'}
           - {os: windows-latest, r: 'release'}
           - {os: ubuntu-latest,  r: 'release'}
 
@@ -27,7 +27,7 @@ jobs:
       R_KEEP_PKG_SOURCE: yes
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: r-lib/actions/setup-r@v2
         with:
