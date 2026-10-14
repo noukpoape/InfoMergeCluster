@@ -24,9 +24,9 @@ fsenario <- function(x, senario, k, cst = 0) {
 
 #' Generate test data (scenarios 1 to 4)
 #'
-#' Generates curves from several groups following one of four scenarios,
-#' and returns them both as a list of matrices and as a long data.frame
-#' (the two formats contain exactly the same data).
+#' Generates curves from several groups following one of the four scenarios
+#' of Zhou, Zhang and Tu (2023), and returns them both as a list of matrices
+#' and as a long data.frame (the two formats contain exactly the same data).
 #'
 #' Each curve is observed at \code{n.min + Binomial(8, 1/2)} sorted uniform
 #' times on [0, 1]. A curve of group \eqn{k} is
@@ -57,6 +57,9 @@ fsenario <- function(x, senario, k, cst = 0) {
 #' The default values of the arguments (\code{n.k = c(20, 30)},
 #' \code{n.cts = c(1.8, 2.4)}, \code{n.min = 2}) give a small two-group data
 #' set; give the values above to reproduce the reference settings.
+#'
+#' @references
+#' Zhou, J., Zhang, Y. and Tu, W. (2023). clusterMLD: An efficient hierarchical clustering method for multivariate longitudinal data. Journal of Computational and Graphical Statistics, 32(3), 1131--1144. \doi{10.1080/10618600.2022.2149540}
 #'
 #' @param senario scenario (1 to 4).
 #' @param n.k number of curves in each group (see the reference settings in Details).

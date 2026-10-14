@@ -259,6 +259,16 @@ st <- infomergecluster_stability(gen$df, K_max = 5, df = 20, re = "intercept", s
 st$stability$mean_ari
 ```
 
+Clustering of scenario S1 (first replication of the simulation study, reference
+settings, 20 B-splines, random intercept, `K = 2` imposed). Left: trajectories
+colored by their true group, true mean curves in black. Right: partition and
+mean curves estimated by InfoMergeCluster (thick lines), true mean curves
+dashed. The two clusters gather trajectories of the same *shape* at various
+levels: the random intercept absorbs the individual level, and the partition
+is driven by the shape.
+
+![Clustering of scenario S1 by InfoMergeCluster](man/figures/s1_clustering.png)
+
 ### With covariates
 
 With covariates, the columns are read by position: identifier, time, response,
@@ -282,10 +292,11 @@ head(predict(fit_cov, covariates = 1))
 
 ## Simulated scenarios
 
-`f.data.generation()` provides four scenarios S1 to S4. The reference data sets
-(study A of the simulation study of InfoMergeCluster) use the following
-settings; no measurement error is added, and subjects differ by a random
-intercept.
+`f.data.generation()` provides the four scenarios S1 to S4 of Zhou, Zhang and
+Tu (2023), the article that introduced the clusterMLD method. The reference
+data sets (study A of the simulation study of InfoMergeCluster) use the
+following settings; no measurement error is added, and subjects differ by a
+random intercept.
 
 | Scenario | K | N   | Group sizes `n.k`          | Shifts `n.cts`            | `n.min` | Measurements per subject |
 |:--------:|:-:|:---:|----------------------------|---------------------------|:-------:|:------------------------:|
@@ -304,6 +315,11 @@ s4 <- f.data.generation(4, n.k = c(60, 85, 45, 70, 50), n.cts = rep(0, 5),      
 The default arguments (`n.k = c(20, 30)`, `n.cts = c(1.8, 2.4)`, `n.min = 2`)
 give a small two-group data set. See `?f.data.generation` for the mean curves
 of each scenario.
+
+**Source of the scenarios.** Zhou, J., Zhang, Y. and Tu, W. (2023).
+clusterMLD: An efficient hierarchical clustering method for multivariate
+longitudinal data. *Journal of Computational and Graphical Statistics*, 32(3),
+1131–1144. [doi:10.1080/10618600.2022.2149540](https://doi.org/10.1080/10618600.2022.2149540)
 
 ## Main arguments of `infomergecluster()`
 
