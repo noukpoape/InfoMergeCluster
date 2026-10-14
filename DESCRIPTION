@@ -2,11 +2,14 @@ Package: InfoMergeCluster
 Type: Package
 Title: Clustering of Sparse Longitudinal Data with Automatic Selection of the Number of Clusters
 Version: 1.0.0
-Authors@R:
+Authors@R: c(
     person(given = c("Komlan", "Midodzi"),
            family = "Noukpoape",
            role = c("aut", "cre"),
-           email = "noukpoape@gmail.com")
+           email = "noukpoape@gmail.com"),
+    person(given = "Cristian",
+           family = "Preda",
+           role = "aut"))
 Description: Model-based clustering of sparse and irregular longitudinal
     data with a mixture of linear mixed models. Each cluster has a penalized
     B-spline mean trajectory (O'Sullivan penalty with an automatically

@@ -1,5 +1,5 @@
 # Part of the InfoMergeCluster package.
-# Author: Komlan Midodzi Noukpoape <noukpoape@gmail.com>
+# Authors: Komlan Midodzi Noukpoape <noukpoape@gmail.com>, Cristian Preda
 
 # =========================================================================== #
 #  Test data generator (scenarios 1 to 4)                                     #

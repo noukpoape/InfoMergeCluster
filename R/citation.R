@@ -1,12 +1,12 @@
 # Part of the InfoMergeCluster package.
-# Author: Komlan Midodzi Noukpoape <noukpoape@gmail.com>
+# Authors: Komlan Midodzi Noukpoape <noukpoape@gmail.com>, Cristian Preda
 
 # BibTeX entry of the package (Google Scholar format); also installed as
 # system.file("CITATION.bib", package = "InfoMergeCluster")
 .im_bibtex <- paste(
   "@manual{noukpoape2026infomergecluster,",
   "  title={InfoMergeCluster: Clustering of Sparse Longitudinal Data with Automatic Selection of the Number of Clusters},",
-  "  author={Noukpoape, Komlan Midodzi},",
+  "  author={Noukpoape, Komlan Midodzi and Preda, Cristian},",
   "  year={2026},",
   "  note={R package version 1.0.0},",
   "  url={https://github.com/noukpoape/InfoMergeCluster}",
@@ -15,7 +15,7 @@
 )
 
 .im_cite_text <- paste(
-  "Noukpoape, K. M. (2026). InfoMergeCluster: Clustering of Sparse Longitudinal",
+  "Noukpoape, K. M. and Preda, C. (2026). InfoMergeCluster: Clustering of Sparse Longitudinal",
   "Data with Automatic Selection of the Number of Clusters. R package version 1.0.0.",
   "https://github.com/noukpoape/InfoMergeCluster"
 )

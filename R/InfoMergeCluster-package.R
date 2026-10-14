@@ -1,5 +1,5 @@
 # Part of the InfoMergeCluster package.
-# Author: Komlan Midodzi Noukpoape <noukpoape@gmail.com>
+# Authors: Komlan Midodzi Noukpoape <noukpoape@gmail.com>, Cristian Preda
 
 #' InfoMergeCluster: clustering of sparse longitudinal data
 #'
@@ -29,7 +29,7 @@
 #' @@manual{noukpoape2026infomergecluster,
 #'   title={InfoMergeCluster: Clustering of Sparse Longitudinal Data with
 #'          Automatic Selection of the Number of Clusters},
-#'   author={Noukpoape, Komlan Midodzi},
+#'   author={Noukpoape, Komlan Midodzi and Preda, Cristian},
 #'   year={2026},
 #'   note={R package version 1.0.0},
 #'   url={https://github.com/noukpoape/InfoMergeCluster}

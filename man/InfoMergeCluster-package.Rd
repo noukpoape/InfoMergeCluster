@@ -33,6 +33,11 @@ Useful links:
 }
 \author{
 \strong{Maintainer}: Komlan Midodzi Noukpoape \email{noukpoape@gmail.com}
+
+Authors:
+\itemize{
+  \item Cristian Preda
+}
 }
 \section{Citation}{
 To cite InfoMergeCluster in publications, use
@@ -41,7 +46,7 @@ To cite InfoMergeCluster in publications, use
 @manual{noukpoape2026infomergecluster,
   title={InfoMergeCluster: Clustering of Sparse Longitudinal Data with
          Automatic Selection of the Number of Clusters},
-  author={Noukpoape, Komlan Midodzi},
+  author={Noukpoape, Komlan Midodzi and Preda, Cristian},
   year={2026},
   note={R package version 1.0.0},
   url={https://github.com/noukpoape/InfoMergeCluster}

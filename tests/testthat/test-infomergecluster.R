@@ -92,8 +92,8 @@ test_that("covariates and covariate-dependent weights", {
 test_that("infomergecluster_citation returns the BibTeX entry", {
   ref <- infomergecluster_citation()
   expect_match(ref, "^@manual\\{noukpoape2026infomergecluster,")
-  expect_match(ref, "author=\\{Noukpoape, Komlan Midodzi\\}")
-  expect_match(infomergecluster_citation("text"), "^Noukpoape, K. M. \\(2026\\)")
+  expect_match(ref, "author=\\{Noukpoape, Komlan Midodzi and Preda, Cristian\\}")
+  expect_match(infomergecluster_citation("text"), "^Noukpoape, K. M. and Preda, C. \\(2026\\)")
   bib <- tempfile(fileext = ".bib")
   infomergecluster_citation(file = bib)
   expect_true(file.exists(bib))

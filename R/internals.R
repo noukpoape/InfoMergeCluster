@@ -1,5 +1,5 @@
 # Part of the InfoMergeCluster package.
-# Author: Komlan Midodzi Noukpoape <noukpoape@gmail.com>
+# Authors: Komlan Midodzi Noukpoape <noukpoape@gmail.com>, Cristian Preda
 
 # Internal functions (not exported): priors, bases, batched linear algebra,
 # sufficient statistics, EM, merge tree and criteria.
