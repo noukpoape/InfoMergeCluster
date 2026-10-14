@@ -163,11 +163,32 @@ table(fit2$cluster, attr(gen$liste, "groupe"))
 fit <- infomergecluster(gen$df, K_max = 5, re = "intercept", verbose = FALSE)
 plot(fit, envelope = TRUE)
 
-# with a covariate (columns: id, time, response, covariate)
-dat <- gen$df[, c("id", "x", "y")]
-dat$sex <- rep(sample(c("F", "M"), 100, replace = TRUE), table(dat$id))
-fit_cov <- infomergecluster(dat, K = 2, n_cov = 1, verbose = FALSE)
-fit_cov$gamma
+# with a covariate acting as a level shift (requires the fda package):
+# 3 clusters, y = f_k(t) + gamma_k z + error, gamma = (1, 0, 1), f_3 = f_1
+if (requireNamespace("fda", quietly = TRUE)) {
+  set.seed(1234)
+  m <- 5
+  b <- fda::create.bspline.basis(c(0, 1), nbasis = m)
+  b1 <- sample(0:10, m, replace = TRUE)
+  b2 <- sample(0:10, m, replace = TRUE)
+  f_list <- list(fda::fd(b1, b), fda::fd(b2, b), fda::fd(b1, b))
+  n1 <- 30; n2 <- 40; n3 <- 30
+  grp <- rep(1:3, c(n1, n2, n3))
+  gam <- c(1, 0, 1)[grp]
+  z_all <- c(rnorm(n1, 1, 1), rnorm(n2, 0, 1), rnorm(n3, -1, 1))
+  # one matrix per subject: time, response, covariate
+  fdata.cov <- lapply(seq_along(grp), function(i) {
+    x <- sort(runif(3 + rbinom(1, 8, 0.5)))
+    y <- fda::eval.fd(f_list[[grp[i]]], x) + gam[i] * z_all[i] +
+      rnorm(length(x), 0, 0.5)
+    cbind(x = x, y = y, z = rep(z_all[i], length(x)))
+  })
+  plot.data(fdata.cov, n.k = c(n1, n2, n3))
+  fit_2 <- infomergecluster(data = fdata.cov, n_cov = 1, re = "intercept",
+                            df = 20, K_max = 10)
+  fit_2$gamma
+  plot(fit_2, envelope = TRUE, level = 0.95, legend = TRUE)
+}
 }
 }
 \seealso{

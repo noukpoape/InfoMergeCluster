@@ -271,23 +271,129 @@ is driven by the shape.
 
 ### With covariates
 
-With covariates, the columns are read by position: identifier, time, response,
-then the `n_cov` covariates.
+With covariates, the columns are read by position. For a list (one matrix per
+subject): time, response, then the `n_cov` covariates; for a long data.frame:
+identifier, time, response, then the covariates.
+
+The example below simulates three clusters of sparse curves with a
+subject-level covariate $`z_i`$ acting as a **level shift**,
+$`y_{ij} = f_k(t_{ij}) + \gamma_k z_i + \varepsilon_{ij}`$, with
+$`\gamma = (1, 0, 1)`$ and a covariate whose mean differs between clusters.
+Clusters 1 and 3 share the same mean curve ($`f_3 = f_1`$). The mean curves
+are built with the [`fda`](https://cran.r-project.org/package=fda) package.
 
 ```r
-dat <- gen$df[, c("id", "x", "y")]
-dat$sex <- rep(sample(c("F", "M"), 100, replace = TRUE), table(dat$id))
+library(InfoMergeCluster)
+library(fda)                      # install.packages("fda")
 
-# covariate effects on the trajectories, specific to each cluster
-fit_cov <- infomergecluster(dat, K = 2, n_cov = 1)
-fit_cov$gamma
+## ------------- Example with a covariate: level-shift effect
+set.seed(1234)
+m <- 5
+T <- 1
+b <- create.bspline.basis(c(0, T), nbasis = m)
 
-# cluster proportions depending on the covariate
-fit_w <- infomergecluster(dat, K = 2, n_cov = 1, weights = "covariates")
+b1 <- sample(0:10, m, replace = TRUE)
+b2 <- sample(0:10, m, replace = TRUE)
+b3 <- b1                          # clusters 1 and 3 share the same mean curve
+
+f1 <- fd(b1, b)
+f2 <- fd(b2, b)
+f3 <- fd(b3, b)
+
+# 3 clusters of 30, 40 and 30 subjects, measurement error sd = 0.5
+n1 <- 30
+n2 <- 40
+n3 <- 30
+epsilon <- 0.5
+
+grp <- rep(1:3, c(n1, n2, n3))
+f_list <- list(f1, f2, f3)
+
+# cluster-specific effects of the covariate and covariate distribution
+gamma1 <- 1
+gamma2 <- 0
+gamma3 <- 1
+
+mu_z1 <- 1
+mu_z2 <- 0
+mu_z3 <- -1
+
+s_z <- 1
+z1 <- rnorm(n1, mu_z1, s_z)
+z2 <- rnorm(n2, mu_z2, s_z)
+z3 <- rnorm(n3, mu_z3, s_z)
+
+gam <- c(gamma1, gamma2, gamma3)[grp]
+z_all <- c(z1, z2, z3)
+
+# one matrix per subject: time, response, covariate (3 to 11 measurements)
+fdata.cov <- lapply(seq_along(grp), function(i) {
+  x <- sort(runif(3 + rbinom(1, 8, 0.5)))
+  y <- eval.fd(f_list[[grp[i]]], x) + gam[i] * z_all[i] + rnorm(length(x), 0, epsilon)
+  z <- rep(z_all[i], length(x))
+  cbind(x = x, y = y, z = z)
+})
+
+# same design without the covariate column
+fdata.cov_ <- lapply(seq_along(grp), function(i) {
+  x <- sort(runif(3 + rbinom(1, 8, 0.5)))
+  y <- eval.fd(f_list[[grp[i]]], x) + gam[i] * z_all[i] + rnorm(length(x), 0, epsilon)
+  cbind(x = x, y = y)
+})
+
+## ---------- Plot of the data
+par(mfrow = c(2, 2), mar = c(4, 4, 2, 0.2))
+plot.data(fdata.cov, n.k = c(n1, n2, n3))
+
+## ---------- Clustering with InfoMergeCluster (1 covariate)
+fit_2 <- infomergecluster(data = fdata.cov, n_cov = 1, re = "intercept", df = 20, K_max = 10)
+fit_2
+fit_2$gamma                       # estimated covariate effect in each cluster
+plot(fit_2, envelope = TRUE, level = 0.95, legend = TRUE)
+```
+
+The same example with a covariate that separates the clusters more strongly
+(continuing the simulation above):
+
+```r
+## ------------- Example with a covariate: level-shift effect (separated covariate)
+mu_z1 <- 2
+mu_z2 <- 0
+mu_z3 <- -3
+s_z <- 0.2
+
+z1 <- rnorm(n1, mu_z1, s_z)
+z2 <- rnorm(n2, mu_z2, s_z)
+z3 <- rnorm(n3, mu_z3, s_z)
+
+gam <- c(gamma1, gamma2, gamma3)[grp]
+z_all <- c(z1, z2, z3)
+
+fdata.cov <- lapply(seq_along(grp), function(i) {
+  x <- sort(runif(3 + rbinom(1, 8, 0.5)))
+  y <- eval.fd(f_list[[grp[i]]], x) + gam[i] * z_all[i] + rnorm(length(x), 0, epsilon)
+  z <- rep(z_all[i], length(x))
+  cbind(x = x, y = y, z = z)
+})
+
+## ---------- Plot of the data
+plot.data(fdata.cov, n.k = c(n1, n2, n3))
+## ---------- Clustering with InfoMergeCluster
+fit_2 <- infomergecluster(data = fdata.cov, n_cov = 1, re = "intercept", df = 20, K_max = 10)
+## ---------- Plot of the clustering
+plot(fit_2, envelope = TRUE, level = 0.95, legend = TRUE)
+```
+
+Other tools for covariates:
+
+```r
+# cluster proportions depending on the covariate (concomitant variable)
+fit_w <- infomergecluster(fdata.cov, n_cov = 1, re = "intercept", df = 20,
+                          K_max = 10, weights = "covariates")
 fit_w$alpha
 
-# mean curves for a given covariate value (dummy-coded: sexM = 1)
-head(predict(fit_cov, covariates = 1))
+# mean curves for a given value of the covariate (here z = 1)
+head(predict(fit_2, covariates = 1))
 ```
 
 ## Simulated scenarios

@@ -8,7 +8,9 @@
 * Conjugate priors on the variance structure, always active and calibrated on
   the empirical variogram of the residuals (no floor on the residual variance).
 * Covariates (`n_cov`) with cluster-specific effects on the trajectories, and
-  cluster proportions depending on the covariates (`weights = "covariates"`).
+  cluster proportions depending on the covariates (`weights = "covariates"`);
+  example with a covariate acting as a level shift (README and
+  `?infomergecluster`, uses the suggested package `fda`).
 * Methods `print()`, `plot()` and `predict()` (confidence and prediction
   envelopes, curves for given covariate values), `fitted_curves()` and
   `infomergecluster_stability()`.
