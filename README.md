@@ -332,13 +332,6 @@ fdata.cov <- lapply(seq_along(grp), function(i) {
   cbind(x = x, y = y, z = z)
 })
 
-# same design without the covariate column
-fdata.cov_ <- lapply(seq_along(grp), function(i) {
-  x <- sort(runif(3 + rbinom(1, 8, 0.5)))
-  y <- eval.fd(f_list[[grp[i]]], x) + gam[i] * z_all[i] + rnorm(length(x), 0, epsilon)
-  cbind(x = x, y = y)
-})
-
 ## ---------- Plot of the data
 par(mfrow = c(2, 2), mar = c(4, 4, 2, 0.2))
 plot.data(fdata.cov, n.k = c(n1, n2, n3))
