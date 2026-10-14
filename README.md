@@ -221,6 +221,8 @@ directly with `K` clusters.
 
 ## Usage
 
+### Without covariates (scenario S1)
+
 The example below uses scenario 1 of the built-in data generator with its
 reference settings: 100 curves in 2 groups (43 and 57 curves), each observed
 at 2 to 10 random times.
