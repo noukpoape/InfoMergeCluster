@@ -259,13 +259,11 @@ st <- infomergecluster_stability(gen$df, K_max = 5, df = 20, re = "intercept", s
 st$stability$mean_ari
 ```
 
-Clustering of scenario S1 (first replication of the simulation study, reference
-settings, 20 B-splines, random intercept, `K = 2` imposed). Left: trajectories
-colored by their true group, true mean curves in black. Right: partition and
-mean curves estimated by InfoMergeCluster (thick lines), true mean curves
-dashed. The two clusters gather trajectories of the same *shape* at various
-levels: the random intercept absorbs the individual level, and the partition
-is driven by the shape.
+Result on scenario S1 (reference settings, 43 and 57 curves). Left: trajectories
+colored by their true group. Right: clustering by InfoMergeCluster, with the
+number of clusters selected by the BIC ($`K = 2`$), the estimated mean curves and
+their 95% confidence envelopes. The estimated proportions (57% and 43%) match
+the true group sizes.
 
 ![Clustering of scenario S1 by InfoMergeCluster](man/figures/s1_clustering.png)
 
@@ -383,6 +381,21 @@ fit_2 <- infomergecluster(data = fdata.cov, n_cov = 1, re = "intercept", df = 20
 ## ---------- Plot of the clustering
 plot(fit_2, envelope = TRUE, level = 0.95, legend = TRUE)
 ```
+
+Results of the two examples (top: first example; bottom: covariate that
+separates the clusters more strongly). Left: trajectories colored by their
+true cluster (1 = black, 2 = red, 3 = green). Right: clustering by
+InfoMergeCluster, with $`K`$ selected by the BIC and 95% confidence envelopes.
+
+![Clustering with a covariate acting as a level shift](man/figures/covariates_clustering.png)
+
+In both cases the BIC selects $`K = 2`$. Clusters 1 and 3 have the same mean
+curve and the same covariate effect ($`\gamma_1 = \gamma_3 = 1`$): given the
+covariate, their subjects follow the same model, and InfoMergeCluster merges
+them into a single cluster C1 (60% = 30 + 30 subjects), separated from cluster
+2 by the shape of its trajectory. The mean curves are drawn at the mean value of
+the covariate; this is why, in the bottom panel, the curve of C1 lies between
+its two groups of trajectories, which differ only by the value of $`z_i`$.
 
 Other tools for covariates:
 
