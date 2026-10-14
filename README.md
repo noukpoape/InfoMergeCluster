@@ -79,7 +79,8 @@ cluster,
 \boldsymbol\varepsilon_i \sim \mathcal{N}(\mathbf{0}, \sigma^2 \mathbf{I}),
 ```
 
-with $`\Pr(z_i = k) = \pi_k`$. The random effect $`\mathbf{u}_i`$ describes how a
+with $`\Pr(z_i = k) = \pi_k`$. This is the model of James and Sugar (2003),
+enriched with a roughness penalty. The random effect $`\mathbf{u}_i`$ describes how a
 subject departs from its cluster trajectory; the design $`\mathbf{Z}_i`$ sets its
 shape: a level shift ($`\mathbf{Z}_i = \mathbf{1}`$, `re = "intercept"`), a line
 ($`\mathbf{Z}_i = [\mathbf{1}, \mathbf{t}_i]`$, `re = "linear"`) or a spline
@@ -131,8 +132,8 @@ For a fixed $`K`$, the penalized likelihood
 P_{jl} = \int_0^1 B_j''(u)\, B_l''(u)\, du ,
 ```
 
-is maximized, where the O'Sullivan penalty measures the curvature of the mean
-trajectories (penalized B-splines). The EM algorithm alternates:
+is maximized, where the O'Sullivan (1986) penalty measures the curvature of the
+mean trajectories (penalized B-splines; see also Eilers and Marx, 1996). The EM algorithm alternates:
 
 - **E step**: posterior probabilities
   $`\tau_{ik} \propto \pi_k \exp\big(\boldsymbol\beta_k^\top \mathbf{b}_i - \tfrac12 \boldsymbol\beta_k^\top \mathbf{A}_i \boldsymbol\beta_k\big)`$;
@@ -141,13 +142,13 @@ trajectories (penalized B-splines). The EM algorithm alternates:
   a generalized ridge regression that pools the information of all the
   subjects of the cluster;
 - update of $`(\mathbf{G}, \sigma^2)`$ through the conditional expectations of
-  $`\mathbf{u}_i`$, and of $`\lambda`$ by the Fellner–Schall iteration.
+  $`\mathbf{u}_i`$, and of $`\lambda`$ by the Fellner–Schall iteration (Wood and Fasiolo, 2017).
 
-The EM is accelerated by SQUAREM. Since the likelihood of a mixture has many
+The EM is accelerated by SQUAREM (Varadhan and Roland, 2008). Since the likelihood of a mixture has many
 local maxima, the initialization matters: InfoMergeCluster builds a **merge
 tree**, starting from an over-segmentation into micro-clusters and merging, at
 each step, the two clusters whose merge most increases the exact integrated
-completed likelihood, computable in $`O(p^3)`$ thanks to the additivity of
+completed likelihood (Biernacki, Celeux and Govaert, 2000), computable in $`O(p^3)`$ thanks to the additivity of
 $`(\mathbf{A}_i, \mathbf{b}_i)`$.
 
 ### Priors on the variance structure
@@ -170,8 +171,8 @@ $`(\mathbf{G}, \sigma^2)`$ read
 \sigma^2 \leftarrow \frac{\sum_i n_i\, \hat\sigma^2_{\text{EM}} + 2 b_\sigma}{\sum_i n_i + 2 a_\sigma + 2}.
 ```
 
-The hyperparameters are calibrated on the **empirical variogram** of the
-residuals of the one-class model: for two measurements of the same subject,
+The hyperparameters are calibrated on the **empirical variogram** (Diggle,
+1988) of the residuals of the one-class model: for two measurements of the same subject,
 $`v = (r_{ij} - r_{ik})^2 / 2`$ and $`u = |t_{ij} - t_{ik}|`$. The smooth
 components vanish as $`u \to 0`$, so the intercept (the *nugget*) estimates
 $`\sigma^2`$; the *sill* is the variance of the residuals. The prior mode of
@@ -197,14 +198,15 @@ smoothed); the information statistics, the EM and the exact merge cost are
 unchanged in dimension $`p + r`$. Covariates are centered, so that
 $`\boldsymbol\beta_k`$ describes the mean trajectory at the mean covariate values.
 With `weights = "covariates"`, the cluster proportions also depend on the
-covariates (concomitant variables),
+covariates (concomitant variables; Dayton and Macready, 1988),
 $`\pi_k(\mathbf{x}_i) = \exp(\mathbf{w}_i^\top\boldsymbol\alpha_k) / \sum_l \exp(\mathbf{w}_i^\top\boldsymbol\alpha_l)`$,
 with $`\mathbf{w}_i = (1, \bar{\mathbf{x}}_i)`$; the M step for
 $`\boldsymbol\alpha`$ is a weighted multinomial logistic regression.
 
 ### Choice of K
 
-The model is fitted for $`K = 1, \dots, K_{\max}`$ and the minimum of
+The model is fitted for $`K = 1, \dots, K_{\max}`$ and the minimum of the BIC
+(Schwarz, 1978)
 
 ```math
 \mathrm{BIC}(K) = -2\, \ell(\hat{\boldsymbol\theta}_K) + d_K \log N,
@@ -246,7 +248,7 @@ fit2 <- infomergecluster(gen$df, K = 2, df = 20, re = "intercept")
 # the list format (one matrix per curve) gives the same kind of fit
 fit2_list <- infomergecluster(gen$liste, K = 2, df = 20, re = "intercept")
 
-# agreement with the true groups
+# agreement with the true groups (adjusted Rand index, Hubert and Arabie, 1985)
 table(fit2$cluster, true_groups)
 adjusted_rand(fit2$cluster, true_groups)
 
@@ -447,6 +449,47 @@ longitudinal data. *Journal of Computational and Graphical Statistics*, 32(3),
 | `min_size`  | minimum cluster size                                                     |
 
 See `?infomergecluster` for the full list.
+
+## References
+
+**Model and estimation**
+
+- Biernacki, C., Celeux, G. and Govaert, G. (2000). Assessing a mixture model
+  for clustering with the integrated completed likelihood. *IEEE Transactions on
+  Pattern Analysis and Machine Intelligence*, 22(7), 719–725.
+- Dayton, C. M. and Macready, G. B. (1988). Concomitant-variable latent-class
+  models. *Journal of the American Statistical Association*, 83(401), 173–178.
+- Diggle, P. J. (1988). An approach to the analysis of repeated measurements.
+  *Biometrics*, 44(4), 959–971.
+- Eilers, P. H. C. and Marx, B. D. (1996). Flexible smoothing with B-splines and
+  penalties. *Statistical Science*, 11(2), 89–121.
+- James, G. M. and Sugar, C. A. (2003). Clustering for sparsely sampled
+  functional data. *Journal of the American Statistical Association*, 98(462),
+  397–408.
+- O'Sullivan, F. (1986). A statistical perspective on ill-posed inverse
+  problems. *Statistical Science*, 1(4), 502–518.
+- Schwarz, G. (1978). Estimating the dimension of a model. *The Annals of
+  Statistics*, 6(2), 461–464.
+- Varadhan, R. and Roland, C. (2008). Simple and globally convergent methods for
+  accelerating the convergence of any EM algorithm. *Scandinavian Journal of
+  Statistics*, 35(2), 335–353.
+- Wood, S. N. and Fasiolo, M. (2017). A generalized Fellner–Schall method for
+  smoothing parameter optimization with application to Tweedie location, scale
+  and shape models. *Biometrics*, 73(4), 1071–1081.
+
+**Simulated scenarios and related clustering methods**
+
+- Zhou, J., Zhang, Y. and Tu, W. (2023). clusterMLD: An efficient hierarchical
+  clustering method for multivariate longitudinal data. *Journal of
+  Computational and Graphical Statistics*, 32(3), 1131–1144.
+  [doi:10.1080/10618600.2022.2149540](https://doi.org/10.1080/10618600.2022.2149540)
+- Yamamoto, M. and Terada, Y. (2024). K-means clustering for sparsely observed
+  longitudinal data. arXiv:2411.08256.
+
+**Evaluation of a partition**
+
+- Hubert, L. and Arabie, P. (1985). Comparing partitions. *Journal of
+  Classification*, 2(1), 193–218.
 
 ## Citation
 

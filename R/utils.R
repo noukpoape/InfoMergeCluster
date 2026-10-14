@@ -5,6 +5,10 @@
 #'
 #' Adjusted Rand index between two partitions (no external dependency).
 #'
+#' @references
+#' Hubert, L. and Arabie, P. (1985). Comparing partitions. Journal of
+#' Classification, 2(1), 193--218.
+#'
 #' @param a,b two vectors of cluster labels of the same length.
 #' @return The adjusted Rand index (1 = identical partitions).
 #' @export

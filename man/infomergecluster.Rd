@@ -147,6 +147,38 @@ Clusters smaller than \code{min_size} are pruned. When \code{K} is given,
 clustering is done directly with \code{K} clusters (one tree for the
 initialization, then a single EM), with no outer loop and no pruning.
 }
+\references{
+Biernacki, C., Celeux, G. and Govaert, G. (2000). Assessing a mixture model
+for clustering with the integrated completed likelihood. IEEE Transactions
+on Pattern Analysis and Machine Intelligence, 22(7), 719--725.
+
+Dayton, C. M. and Macready, G. B. (1988). Concomitant-variable latent-class
+models. Journal of the American Statistical Association, 83(401), 173--178.
+
+Diggle, P. J. (1988). An approach to the analysis of repeated measurements.
+Biometrics, 44(4), 959--971.
+
+Eilers, P. H. C. and Marx, B. D. (1996). Flexible smoothing with B-splines
+and penalties. Statistical Science, 11(2), 89--121.
+
+James, G. M. and Sugar, C. A. (2003). Clustering for sparsely sampled
+functional data. Journal of the American Statistical Association, 98(462),
+397--408.
+
+O'Sullivan, F. (1986). A statistical perspective on ill-posed inverse
+problems. Statistical Science, 1(4), 502--518.
+
+Schwarz, G. (1978). Estimating the dimension of a model. The Annals of
+Statistics, 6(2), 461--464.
+
+Varadhan, R. and Roland, C. (2008). Simple and globally convergent methods
+for accelerating the convergence of any EM algorithm. Scandinavian Journal
+of Statistics, 35(2), 335--353.
+
+Wood, S. N. and Fasiolo, M. (2017). A generalized Fellner-Schall method for
+smoothing parameter optimization with application to Tweedie location,
+scale and shape models. Biometrics, 73(4), 1071--1081.
+}
 \examples{
 # scenario 1 with its reference settings: 2 groups of 43 and 57 curves
 set.seed(1)
