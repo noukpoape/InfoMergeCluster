@@ -27,24 +27,29 @@ print.infomergecluster <- function(x, ...) {
   cat(sprintf("  Proportions: %s\n", paste(sprintf("%.3f", x$pi), collapse = ", ")))
   cat(sprintf("  sigma2 = %.4g; trace(G) = %.4g; lambda = %.3g; effective df (total) = %.1f\n",
               x$sigma2, sum(diag(x$G)), x$lambda, x$edf))
-  if (is.null(x$prior)) {
-    cat("  Priors on (G, sigma2): none (maximum likelihood)\n")
-  } else {
+  if (!is.null(x$prior)) {
     cat(sprintf("  Priors: G ~ IW(nu0 = %.3g, Psi0 [trace %.3g]); sigma2 ~ IG(%.3g, %.3g)\n",
                 x$prior$nu0, sum(diag(x$prior$Psi0)), x$prior$a_sigma, x$prior$b_sigma))
-    if (!is.null(x$prior$nugget))
-      cat(sprintf("    nugget = %.4g (%s), sill = %.4g; prior modes: sigma2 = %.4g, G = %.4g I\n",
-                  x$prior$nugget, x$prior$nugget_source, x$variogram$sill,
-                  x$prior$b_sigma / (x$prior$a_sigma + 1),
-                  mean(diag(x$prior$Psi0)) / (x$prior$nu0 + x$prior$q + 1)))
+    cat(sprintf("    nugget = %.4g (%s), sill = %.4g; prior modes: sigma2 = %.4g, G = %.4g I\n",
+                x$prior$nugget, x$prior$nugget_source, x$variogram$sill,
+                x$prior$b_sigma / (x$prior$a_sigma + 1),
+                mean(diag(x$prior$Psi0)) / (x$prior$nu0 + x$prior$q + 1)))
+  }
+  if (!is.null(x$gamma)) {
+    cat(sprintf("  Covariates (centered, cluster-specific effects gamma_k): %s\n",
+                paste(rownames(x$gamma), collapse = ", ")))
+    print(round(x$gamma, 4))
+  }
+  if (identical(x$weights, "covariates") && !is.null(x$alpha)) {
+    cat("  Weights depending on the covariates (multinomial logistic, reference C1):\n")
+    print(round(x$alpha, 4))
   }
   cat(sprintf("  computing time = %.2f s\n\n", x$time_sec))
   if (!is.null(x$var_y) && x$sigma2 < 1e-3 * x$var_y) {
     cat("  WARNING: near-zero residual variance (sigma2 < 0.1% of var(y)).\n",
         " In this regime (data without measurement error), several partitions have\n",
         " nearly equal criteria: the selected K may vary with the seed or a_dir.\n",
-        " See infomergecluster_stability(), increase df, set s2_min (e.g. 1e-3) or\n",
-        " strengthen the prior on sigma2 (prior = list(b_sigma = ...)).\n\n")
+        " See infomergecluster_stability() or increase df.\n\n")
   }
   if (!is.null(x$stability)) {
     st <- x$stability
@@ -76,6 +81,9 @@ print.infomergecluster <- function(x, ...) {
 #' @param times time grid (default: 200 points over the observed range).
 #' @param interval \code{"none"}, \code{"confidence"} or \code{"prediction"}.
 #' @param level level of the envelope.
+#' @param covariates \code{NULL} (curves at the mean covariate values) or a
+#'   numeric vector of covariate values on the original scale, in the order
+#'   of \code{rownames(object$gamma)} (dummy-coded for factors).
 #' @param ... unused.
 #' @return A data.frame with a \code{time} column, one column per cluster
 #'   (\code{C1}, \code{C2}, ...) and, if an envelope is requested, the bounds
@@ -83,11 +91,21 @@ print.infomergecluster <- function(x, ...) {
 #' @export
 predict.infomergecluster <- function(object, times = NULL,
                                      interval = c("none", "confidence", "prediction"),
-                                     level = 0.95, ...) {
+                                     level = 0.95, covariates = NULL, ...) {
   interval <- match.arg(interval)
   if (is.null(times)) times <- seq(object$basis$lo, object$basis$hi, length.out = 200)
   Bt <- .im_basis_eval(object$basis, times)
-  fit <- Bt %*% object$beta
+  r <- if (is.null(object$gamma)) 0 else nrow(object$gamma)
+  xc <- numeric(r)
+  if (r > 0 && !is.null(covariates)) {
+    if (length(covariates) != r)
+      stop(sprintf("'covariates' must have %d value(s), in the order: %s", r,
+                   paste(rownames(object$gamma), collapse = ", ")))
+    xc <- as.numeric(covariates) - as.numeric(object$covariates$center)
+  }
+  At <- if (r > 0) cbind(Bt, matrix(xc, nrow(Bt), r, byrow = TRUE)) else Bt
+  coef <- if (r > 0) rbind(object$beta, object$gamma) else object$beta
+  fit <- At %*% coef
   labs <- colnames(object$beta)
   out <- data.frame(time = times, fit)
   names(out)[-1] <- labs
@@ -102,7 +120,7 @@ predict.infomergecluster <- function(object, times = NULL,
     var_extra <- rowSums((Zt %*% object$G) * Zt) + object$sigma2
   }
   for (k in seq_along(labs)) {
-    se <- sqrt(pmax(rowSums((Bt %*% object$Vbeta[[k]]) * Bt), 0) + var_extra)
+    se <- sqrt(pmax(rowSums((At %*% object$Vbeta[[k]]) * At), 0) + var_extra)
     out[[paste0(labs[k], "_lwr")]] <- fit[, k] - z * se
     out[[paste0(labs[k], "_upr")]] <- fit[, k] + z * se
   }
@@ -112,7 +130,8 @@ predict.infomergecluster <- function(object, times = NULL,
 #' Predicted individual trajectories
 #'
 #' Computes the predicted trajectory of each subject (BLUP of the random
-#' effect, conditional on its MAP cluster) on a time grid.
+#' effect, conditional on its MAP cluster) on a time grid. With covariates,
+#' they are held at the subject's mean values.
 #'
 #' @param object an object of class \code{"infomergecluster"} fitted with
 #'   \code{keep_data = TRUE}.
@@ -136,8 +155,16 @@ fitted_curves <- function(object, times = NULL) {
     Zi <- .im_Z(object$basis, object$re, d$t[r_i], Bi)
     Vi <- Zi %*% G %*% t(Zi) + diag(s2, nrow(Zi))
     bk <- object$beta[, object$cluster[i]]
-    u <- G %*% t(Zi) %*% solve(Vi, d$y[r_i] - Bi %*% bk)
-    res[i, ] <- Bt %*% bk + Zt %*% u
+    shift_obs <- 0
+    shift_grid <- 0
+    if (!is.null(object$gamma)) {
+      Xi <- as.matrix(d[r_i, object$covariates$names, drop = FALSE])
+      gk <- object$gamma[, object$cluster[i]]
+      shift_obs <- as.vector(Xi %*% gk)
+      shift_grid <- sum(colMeans(Xi) * gk)   # covariates held at the subject mean
+    }
+    u <- G %*% t(Zi) %*% solve(Vi, d$y[r_i] - Bi %*% bk - shift_obs)
+    res[i, ] <- Bt %*% bk + shift_grid + Zt %*% u
   }
   res
 }

@@ -5,18 +5,19 @@
 \usage{
 infomergecluster(data, K_max = 8, K = NULL, df = 15, degree = 3,
   penalty = TRUE, pen_order = 2, re = c("linear", "intercept", "spline"),
-  s2_min = 1e-6, prior = list(), min_size = 2, K0 = NULL,
+  n_cov = 0, weights = c("constant", "covariates"), min_size = 2, K0 = NULL,
   criterion = c("BIC", "ICL"), a_dir = 0.5, n_outer = 3, quick_cycles = 4,
   full_cycles = 15, inner_cap = 3, tol = 1e-5, nstart = 5, seed = NULL,
   keep_data = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{data}{data, in one of the following forms (columns are identified
-  by position): a long data.frame (1st column = subject identifier,
-  second-to-last = time, last = response; intermediate columns are
-  ignored), or a list of data.frames or matrices, one element per subject
-  (second-to-last column = time, last = response; the identifier is the
-  element name, otherwise its rank).}
+  by position). Without covariates (\code{n_cov = 0}): a long data.frame
+  (1st column = subject identifier, second-to-last = time, last =
+  response; intermediate columns are ignored), or a list of data.frames
+  or matrices, one element per subject (second-to-last column = time,
+  last = response; the identifier is the element name, otherwise its
+  rank). With covariates, see \code{n_cov}.}
 
 \item{K_max}{maximum number of clusters examined (ignored if \code{K} is given).}
 
@@ -40,18 +41,19 @@ infomergecluster(data, K_max = 8, K = NULL, df = 15, degree = 3,
   slope, default), \code{"intercept"} (random intercept) or
   \code{"spline"} (random effect on the B-spline basis).}
 
-\item{s2_min}{floor on the residual variance, as a fraction of var(y).}
+\item{n_cov}{number of covariates (0 by default) acting on the mean
+  trajectories with cluster-specific effects \eqn{\gamma_k}. Columns are
+  identified by position: for a long data.frame, 1st column = identifier,
+  2nd = time, 3rd = response and columns 4 to \code{3 + n_cov} =
+  covariates; for a list (one element per subject), 1st column = time,
+  2nd = response and columns 3 to \code{2 + n_cov} = covariates. One value
+  per measurement (constant within a subject or time-varying). Factors are
+  coded by dummy variables and all covariates are centered, so that the
+  mean curves are those of a subject with mean covariate values.}
 
-\item{prior}{priors on the variance structure. \code{NULL} (or
-  \code{FALSE}) gives maximum likelihood. Otherwise a list whose missing
-  elements take their default value: \code{nu0} (inverse-Wishart degrees
-  of freedom, \eqn{> q - 1}, default \eqn{q}), \code{a_sigma}
-  (inverse-gamma shape, default 1), \code{g_share} (share of sill minus
-  nugget attributed a priori to the random effect, default 0.5),
-  \code{nugget} (imposed nugget; \code{NULL} = estimated from the
-  variogram), \code{Psi0} (optional; \eqn{q \times q} matrix or scalar
-  \eqn{c} for \eqn{c I_q}) and \code{b_sigma} (optional; replaces
-  \code{(a_sigma + 1) * nugget}).}
+\item{weights}{\code{"constant"} (cluster proportions \eqn{\pi_k}, default)
+  or \code{"covariates"} (proportions depending on the subject's covariates
+  through a multinomial logistic model; requires \code{n_cov > 0}).}
 
 \item{min_size}{minimum cluster size (posterior size \eqn{N \pi_k}).}
 
@@ -91,65 +93,85 @@ An object of class \code{"infomergecluster"}, a list containing
   \item{posterior}{matrix of posterior membership probabilities.}
   \item{pi}{cluster proportions.}
   \item{beta}{B-spline coefficients of the mean curves (one column per cluster).}
+  \item{gamma}{cluster-specific covariate effects (\code{NULL} without covariates).}
+  \item{alpha}{coefficients of the multinomial logistic model of the
+    weights, cluster C1 as reference (\code{NULL} unless
+    \code{weights = "covariates"}).}
   \item{G, sigma2, lambda}{random-effect covariance, residual variance and
     smoothing parameter.}
   \item{loglik, edf}{log-likelihood and effective degrees of freedom.}
   \item{table}{criteria (log-likelihood, BIC, ICL, entropy) of every fitted K.}
   \item{re}{random-effect structure used.}
-  \item{prior, variogram}{hyperparameters and empirical variogram.}
+  \item{prior, variogram}{hyperparameters of the priors and empirical variogram.}
   \item{basis, data}{B-spline basis and data in long format.}
 }
 \description{
-Fits a mixture of penalized B-spline mean curves with a random effect
-to sparse longitudinal data, and either selects the number of clusters
-automatically (BIC or ICL) or uses the number of clusters supplied in
-\code{K}.
+Fits a mixture of linear mixed models with penalized B-spline mean
+curves to sparse longitudinal data, and either selects the number of
+clusters automatically (BIC or ICL) or uses the number of clusters
+supplied in \code{K}.
 }
 \details{
-The model is
-\deqn{y_i \mid z_i = k \sim N(B_i \beta_k, V_i), \quad V_i = Z_i G Z_i' + \sigma^2 I,}
-where \eqn{B_i} is a B-spline basis evaluated at the times of subject
-\eqn{i}, \eqn{\beta_k} the coefficients of the mean curve of cluster
-\eqn{k}, and \eqn{Z_i} the random-effect design (intercept, linear or
-spline). The mean curves are penalized B-splines (O'Sullivan penalty on
-the \code{pen_order}-th derivative), with a smoothing parameter estimated
-within the EM algorithm.
+Conditionally on its cluster \eqn{z_i = k}, the measurements of subject
+\eqn{i} follow
+\deqn{y_i = B_i \beta_k + X_i \gamma_k + Z_i u_i + \varepsilon_i, \quad
+  u_i \sim N_q(0, G), \quad \varepsilon_i \sim N(0, \sigma^2 I),}
+with \eqn{P(z_i = k) = \pi_k}. \eqn{B_i} is a B-spline basis evaluated at
+the times of subject \eqn{i}, \eqn{\beta_k} the coefficients of the mean
+curve of cluster \eqn{k}, \eqn{X_i} the (optional, centered) covariates
+with cluster-specific effects \eqn{\gamma_k}, and \eqn{Z_i} the
+random-effect design (intercept, linear or spline). The mean curves are
+penalized B-splines (O'Sullivan penalty on the \code{pen_order}-th
+derivative), with a smoothing parameter estimated within the EM algorithm
+(Fellner-Schall update); the covariate effects are not penalized.
 
-By default, conjugate priors are placed on the variance structure,
-\eqn{G \sim IW_q(\nu_0, \Psi_0)} and \eqn{\sigma^2 \sim IG(a_\sigma, b_\sigma)},
-with hyperparameters calibrated on the empirical variogram of the
-residuals of the one-class model (the nugget gives the prior mode of
-\eqn{\sigma^2}). The estimator is then the posterior mode; the reported
-log-likelihood, BIC and ICL do not include the prior. Use
-\code{prior = NULL} for maximum likelihood.
+Conjugate priors are always placed on the variance structure,
+\eqn{G \sim IW_q(q, \Psi_0)} and \eqn{\sigma^2 \sim IG(1, b_\sigma)}.
+Their hyperparameters are calibrated on the empirical variogram of the
+residuals of the one-class model: the prior mode of \eqn{\sigma^2} is the
+nugget, and the prior mode of \eqn{G} attributes half of (sill - nugget)
+to the random effect. The estimator is the posterior mode; the residual
+variance cannot collapse to zero, even for data without measurement
+error. The reported log-likelihood, BIC and ICL do not include the prior.
+
+With \code{weights = "covariates"}, the cluster proportions depend on the
+subject's covariates (concomitant variables),
+\eqn{\pi_k(x_i) = \exp(w_i'\alpha_k) / \sum_l \exp(w_i'\alpha_l)}, with
+\eqn{w_i = (1, \bar{x}_i)} (subject means of the centered covariates).
 
 When \code{K} is \code{NULL}, an InfoMergeCluster tree (greedy merges of
-micro-clusters based on the exact ICL) initializes the EM for every
-\eqn{K \le} \code{K_max}, and an outer loop refines the variance
-parameters until the selected \eqn{K} is stable. Clusters smaller than
-\code{min_size} are pruned. When \code{K} is given, clustering is done
-directly with \code{K} clusters (one tree for the initialization, then a
-single EM), with no outer loop and no pruning.
+micro-clusters based on the exact integrated completed likelihood)
+initializes the EM for every \eqn{K \le} \code{K_max}, and an outer loop
+refines the variance parameters until the selected \eqn{K} is stable.
+Clusters smaller than \code{min_size} are pruned. When \code{K} is given,
+clustering is done directly with \code{K} clusters (one tree for the
+initialization, then a single EM), with no outer loop and no pruning.
 }
 \examples{
-# scenario 1 with its reference settings: 2 groups of 20 and 30 curves
+# scenario 1 with its reference settings: 2 groups of 43 and 57 curves
 set.seed(1)
-gen <- f.data.generation(senario = 1)
+gen <- f.data.generation(senario = 1, n.k = c(43, 57), n.cts = c(1.8, 2.4), n.min = 2)
 plot.data(gen$liste, legend = TRUE)
 
 # number of clusters imposed
-fit2 <- infomergecluster(gen$df, K = 2, verbose = FALSE)
+fit2 <- infomergecluster(gen$df, K = 2, re = "intercept", verbose = FALSE)
 fit2
 table(fit2$cluster, attr(gen$liste, "groupe"))
 
 \donttest{
 # number of clusters selected by BIC
-fit <- infomergecluster(gen$df, K_max = 5, verbose = FALSE)
+fit <- infomergecluster(gen$df, K_max = 5, re = "intercept", verbose = FALSE)
 plot(fit, envelope = TRUE)
+
+# with a covariate (columns: id, time, response, covariate)
+dat <- gen$df[, c("id", "x", "y")]
+dat$sex <- rep(sample(c("F", "M"), 100, replace = TRUE), table(dat$id))
+fit_cov <- infomergecluster(dat, K = 2, n_cov = 1, verbose = FALSE)
+fit_cov$gamma
 }
 }
 \seealso{
 \code{\link{plot.infomergecluster}},
   \code{\link{predict.infomergecluster}}, \code{\link{fitted_curves}},
-  \code{\link{infomergecluster_stability}}
+  \code{\link{infomergecluster_stability}}, \code{\link{f.data.generation}}
 }

@@ -16,5 +16,6 @@ A matrix with one row per subject and one column per time.
 }
 \description{
 Computes the predicted trajectory of each subject (BLUP of the random
-effect, conditional on its MAP cluster) on a time grid.
+effect, conditional on its MAP cluster) on a time grid. With covariates,
+they are held at the subject's mean values.
 }

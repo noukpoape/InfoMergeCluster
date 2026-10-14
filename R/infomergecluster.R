@@ -3,42 +3,53 @@
 
 #' Cluster sparse longitudinal data
 #'
-#' Fits a mixture of penalized B-spline mean curves with a random effect
-#' to sparse longitudinal data, and either selects the number of clusters
-#' automatically (BIC or ICL) or uses the number of clusters supplied in
-#' \code{K}.
+#' Fits a mixture of linear mixed models with penalized B-spline mean
+#' curves to sparse longitudinal data, and either selects the number of
+#' clusters automatically (BIC or ICL) or uses the number of clusters
+#' supplied in \code{K}.
 #'
-#' The model is
-#' \deqn{y_i \mid z_i = k \sim N(B_i \beta_k, V_i), \quad V_i = Z_i G Z_i' + \sigma^2 I,}
-#' where \eqn{B_i} is a B-spline basis evaluated at the times of subject
-#' \eqn{i}, \eqn{\beta_k} the coefficients of the mean curve of cluster
-#' \eqn{k}, and \eqn{Z_i} the random-effect design (intercept, linear or
-#' spline). The mean curves are penalized B-splines (O'Sullivan penalty on
-#' the \code{pen_order}-th derivative), with a smoothing parameter estimated
-#' within the EM algorithm.
+#' Conditionally on its cluster \eqn{z_i = k}, the measurements of subject
+#' \eqn{i} follow
+#' \deqn{y_i = B_i \beta_k + X_i \gamma_k + Z_i u_i + \varepsilon_i, \quad
+#'   u_i \sim N_q(0, G), \quad \varepsilon_i \sim N(0, \sigma^2 I),}
+#' with \eqn{P(z_i = k) = \pi_k}. \eqn{B_i} is a B-spline basis evaluated at
+#' the times of subject \eqn{i}, \eqn{\beta_k} the coefficients of the mean
+#' curve of cluster \eqn{k}, \eqn{X_i} the (optional, centered) covariates
+#' with cluster-specific effects \eqn{\gamma_k}, and \eqn{Z_i} the
+#' random-effect design (intercept, linear or spline). The mean curves are
+#' penalized B-splines (O'Sullivan penalty on the \code{pen_order}-th
+#' derivative), with a smoothing parameter estimated within the EM algorithm
+#' (Fellner-Schall update); the covariate effects are not penalized.
 #'
-#' By default, conjugate priors are placed on the variance structure,
-#' \eqn{G \sim IW_q(\nu_0, \Psi_0)} and \eqn{\sigma^2 \sim IG(a_\sigma, b_\sigma)},
-#' with hyperparameters calibrated on the empirical variogram of the
-#' residuals of the one-class model (the nugget gives the prior mode of
-#' \eqn{\sigma^2}). The estimator is then the posterior mode; the reported
-#' log-likelihood, BIC and ICL do not include the prior. Use
-#' \code{prior = NULL} for maximum likelihood.
+#' Conjugate priors are always placed on the variance structure,
+#' \eqn{G \sim IW_q(q, \Psi_0)} and \eqn{\sigma^2 \sim IG(1, b_\sigma)}.
+#' Their hyperparameters are calibrated on the empirical variogram of the
+#' residuals of the one-class model: the prior mode of \eqn{\sigma^2} is the
+#' nugget, and the prior mode of \eqn{G} attributes half of (sill - nugget)
+#' to the random effect. The estimator is the posterior mode; the residual
+#' variance cannot collapse to zero, even for data without measurement
+#' error. The reported log-likelihood, BIC and ICL do not include the prior.
+#'
+#' With \code{weights = "covariates"}, the cluster proportions depend on the
+#' subject's covariates (concomitant variables),
+#' \eqn{\pi_k(x_i) = \exp(w_i'\alpha_k) / \sum_l \exp(w_i'\alpha_l)}, with
+#' \eqn{w_i = (1, \bar{x}_i)} (subject means of the centered covariates).
 #'
 #' When \code{K} is \code{NULL}, an InfoMergeCluster tree (greedy merges of
-#' micro-clusters based on the exact ICL) initializes the EM for every
-#' \eqn{K \le} \code{K_max}, and an outer loop refines the variance
-#' parameters until the selected \eqn{K} is stable. Clusters smaller than
-#' \code{min_size} are pruned. When \code{K} is given, clustering is done
-#' directly with \code{K} clusters (one tree for the initialization, then a
-#' single EM), with no outer loop and no pruning.
+#' micro-clusters based on the exact integrated completed likelihood)
+#' initializes the EM for every \eqn{K \le} \code{K_max}, and an outer loop
+#' refines the variance parameters until the selected \eqn{K} is stable.
+#' Clusters smaller than \code{min_size} are pruned. When \code{K} is given,
+#' clustering is done directly with \code{K} clusters (one tree for the
+#' initialization, then a single EM), with no outer loop and no pruning.
 #'
 #' @param data data, in one of the following forms (columns are identified
-#'   by position): a long data.frame (1st column = subject identifier,
-#'   second-to-last = time, last = response; intermediate columns are
-#'   ignored), or a list of data.frames or matrices, one element per subject
-#'   (second-to-last column = time, last = response; the identifier is the
-#'   element name, otherwise its rank).
+#'   by position). Without covariates (\code{n_cov = 0}): a long data.frame
+#'   (1st column = subject identifier, second-to-last = time, last =
+#'   response; intermediate columns are ignored), or a list of data.frames
+#'   or matrices, one element per subject (second-to-last column = time,
+#'   last = response; the identifier is the element name, otherwise its
+#'   rank). With covariates, see \code{n_cov}.
 #' @param K_max maximum number of clusters examined (ignored if \code{K} is given).
 #' @param K imposed number of clusters (integer \eqn{\ge 1}). \code{NULL}
 #'   (default): \code{K} is chosen automatically between 1 and \code{K_max}.
@@ -54,17 +65,18 @@
 #' @param re random-effect structure: \code{"linear"} (random intercept and
 #'   slope, default), \code{"intercept"} (random intercept) or
 #'   \code{"spline"} (random effect on the B-spline basis).
-#' @param s2_min floor on the residual variance, as a fraction of var(y).
-#' @param prior priors on the variance structure. \code{NULL} (or
-#'   \code{FALSE}) gives maximum likelihood. Otherwise a list whose missing
-#'   elements take their default value: \code{nu0} (inverse-Wishart degrees
-#'   of freedom, \eqn{> q - 1}, default \eqn{q}), \code{a_sigma}
-#'   (inverse-gamma shape, default 1), \code{g_share} (share of sill minus
-#'   nugget attributed a priori to the random effect, default 0.5),
-#'   \code{nugget} (imposed nugget; \code{NULL} = estimated from the
-#'   variogram), \code{Psi0} (optional; \eqn{q \times q} matrix or scalar
-#'   \eqn{c} for \eqn{c I_q}) and \code{b_sigma} (optional; replaces
-#'   \code{(a_sigma + 1) * nugget}).
+#' @param n_cov number of covariates (0 by default) acting on the mean
+#'   trajectories with cluster-specific effects \eqn{\gamma_k}. Columns are
+#'   identified by position: for a long data.frame, 1st column = identifier,
+#'   2nd = time, 3rd = response and columns 4 to \code{3 + n_cov} =
+#'   covariates; for a list (one element per subject), 1st column = time,
+#'   2nd = response and columns 3 to \code{2 + n_cov} = covariates. One value
+#'   per measurement (constant within a subject or time-varying). Factors are
+#'   coded by dummy variables and all covariates are centered, so that the
+#'   mean curves are those of a subject with mean covariate values.
+#' @param weights \code{"constant"} (cluster proportions \eqn{\pi_k}, default)
+#'   or \code{"covariates"} (proportions depending on the subject's covariates
+#'   through a multinomial logistic model; requires \code{n_cov > 0}).
 #' @param min_size minimum cluster size (posterior size \eqn{N \pi_k}).
 #' @param K0 number of micro-clusters of the tree (\code{NULL} = automatic).
 #' @param criterion \code{"BIC"} (target: mixture components) or
@@ -90,53 +102,77 @@
 #'   \item{posterior}{matrix of posterior membership probabilities.}
 #'   \item{pi}{cluster proportions.}
 #'   \item{beta}{B-spline coefficients of the mean curves (one column per cluster).}
+#'   \item{gamma}{cluster-specific covariate effects (\code{NULL} without covariates).}
+#'   \item{alpha}{coefficients of the multinomial logistic model of the
+#'     weights, cluster C1 as reference (\code{NULL} unless
+#'     \code{weights = "covariates"}).}
 #'   \item{G, sigma2, lambda}{random-effect covariance, residual variance and
 #'     smoothing parameter.}
 #'   \item{loglik, edf}{log-likelihood and effective degrees of freedom.}
 #'   \item{table}{criteria (log-likelihood, BIC, ICL, entropy) of every fitted K.}
 #'   \item{re}{random-effect structure used.}
-#'   \item{prior, variogram}{hyperparameters and empirical variogram.}
+#'   \item{prior, variogram}{hyperparameters of the priors and empirical variogram.}
 #'   \item{basis, data}{B-spline basis and data in long format.}
 #'
 #' @seealso \code{\link{plot.infomergecluster}},
 #'   \code{\link{predict.infomergecluster}}, \code{\link{fitted_curves}},
-#'   \code{\link{infomergecluster_stability}}
+#'   \code{\link{infomergecluster_stability}}, \code{\link{f.data.generation}}
 #'
 #' @examples
-#' # scenario 1 with its reference settings: 2 groups of 20 and 30 curves
+#' # scenario 1 with its reference settings: 2 groups of 43 and 57 curves
 #' set.seed(1)
-#' gen <- f.data.generation(senario = 1)
+#' gen <- f.data.generation(senario = 1, n.k = c(43, 57), n.cts = c(1.8, 2.4), n.min = 2)
 #' plot.data(gen$liste, legend = TRUE)
 #'
 #' # number of clusters imposed
-#' fit2 <- infomergecluster(gen$df, K = 2, verbose = FALSE)
+#' fit2 <- infomergecluster(gen$df, K = 2, re = "intercept", verbose = FALSE)
 #' fit2
 #' table(fit2$cluster, attr(gen$liste, "groupe"))
 #'
 #' \donttest{
 #' # number of clusters selected by BIC
-#' fit <- infomergecluster(gen$df, K_max = 5, verbose = FALSE)
+#' fit <- infomergecluster(gen$df, K_max = 5, re = "intercept", verbose = FALSE)
 #' plot(fit, envelope = TRUE)
+#'
+#' # with a covariate (columns: id, time, response, covariate)
+#' dat <- gen$df[, c("id", "x", "y")]
+#' dat$sex <- rep(sample(c("F", "M"), 100, replace = TRUE), table(dat$id))
+#' fit_cov <- infomergecluster(dat, K = 2, n_cov = 1, verbose = FALSE)
+#' fit_cov$gamma
 #' }
 #' @export
 infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
                              penalty = TRUE, pen_order = 2,
                              re = c("linear", "intercept", "spline"),
-                             s2_min = 1e-6, prior = list(), min_size = 2, K0 = NULL,
+                             n_cov = 0, weights = c("constant", "covariates"),
+                             min_size = 2, K0 = NULL,
                              criterion = c("BIC", "ICL"), a_dir = 0.5,
                              n_outer = 3, quick_cycles = 4, full_cycles = 15,
                              inner_cap = 3, tol = 1e-5, nstart = 5, seed = NULL,
                              keep_data = TRUE, verbose = TRUE) {
   
   re <- match.arg(re)
+  weights <- match.arg(weights)
   criterion <- match.arg(criterion)
   t_start <- proc.time()[["elapsed"]]
+  if (!is.numeric(n_cov) || length(n_cov) != 1 || !is.finite(n_cov) || n_cov < 0 ||
+      n_cov != round(n_cov))
+    stop("'n_cov' must be an integer >= 0.")
+  n_cov <- as.integer(n_cov)
   
-  d <- .im_as_long(data)
+  d <- .im_as_long(data, n_cov)
+  cov_raw <- if (n_cov > 0) d[paste0("z", seq_len(n_cov))] else NULL
+  d <- d[, c("id", "t", "y"), drop = FALSE]
   n_raw <- nrow(d)
-  d <- d[stats::complete.cases(d), , drop = FALSE]
+  ok <- stats::complete.cases(d)
+  if (!is.null(cov_raw)) ok <- ok & stats::complete.cases(cov_raw)
+  d <- d[ok, , drop = FALSE]
   if (verbose && nrow(d) < n_raw)
     message(sprintf("%d incomplete or non-numeric measurement(s) ignored.", n_raw - nrow(d)))
+  cov <- .im_covariate_design(cov_raw, ok)
+  if (weights == "covariates" && length(cov$names) == 0)
+    stop("weights = \"covariates\" requires n_cov > 0.")
+  if (length(cov$names)) d <- cbind(d, cov$X)
   d <- d[order(d$id, d$t), , drop = FALSE]
   rownames(d) <- NULL
   N_subj <- length(unique(d$id))
@@ -151,8 +187,8 @@ infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
   }
   
   args <- list(K_max = K_max, K_fixed = K, df = df, degree = degree, penalty = penalty,
-               pen_order = pen_order, s2_min = s2_min, prior = prior,
-               min_size = min_size, K0 = K0,
+               pen_order = pen_order, cov_names = cov$names, cov_center = cov$center,
+               weights = weights, min_size = min_size, K0 = K0,
                criterion = criterion, a_dir = a_dir, n_outer = n_outer,
                quick_cycles = quick_cycles, full_cycles = full_cycles,
                inner_cap = inner_cap, tol = tol, nstart = nstart, verbose = verbose)
@@ -177,7 +213,19 @@ infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
   suppressWarnings(as.numeric(v))
 }
 
-.im_as_long <- function(data) {
+#   n_cov > 0 (columns identified by position):
+#     - long data.frame: 1st = identifier, 2nd = time, 3rd = response,
+#       columns 4..(3 + n_cov) = covariates;
+#     - list: 1st column = time, 2nd = response, columns 3..(2 + n_cov) =
+#       covariates.
+#   The covariates are returned as columns z1, ..., z<n_cov>, with their type.
+.im_as_long <- function(data, n_cov = 0L) {
+  zn <- if (n_cov > 0) paste0("z", seq_len(n_cov)) else character(0)
+  grab <- function(e, cols) {
+    cv <- e[cols]
+    names(cv) <- zn
+    cv
+  }
   if (is.data.frame(data) || is.matrix(data)) {
     data <- as.data.frame(data, stringsAsFactors = FALSE)
     nc <- ncol(data)
@@ -186,6 +234,13 @@ infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
            "time (second-to-last) and response (last).")
     id <- data[[1]]
     if (is.factor(id)) id <- as.character(id)
+    if (n_cov > 0) {
+      if (nc < 3L + n_cov)
+        stop(sprintf("With n_cov = %d, a long data.frame must have at least %d columns: identifier, time, response and the covariates.", n_cov, 3L + n_cov))
+      out <- data.frame(id = id, t = .im_num(data[[2]]), y = .im_num(data[[3]]),
+                        stringsAsFactors = FALSE)
+      return(cbind(out, grab(data, 3L + seq_len(n_cov))))
+    }
     return(data.frame(id = id, t = .im_num(data[[nc - 1]]), y = .im_num(data[[nc]]),
                       stringsAsFactors = FALSE))
   }
@@ -203,6 +258,13 @@ infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
       if (nc < 2)
         stop(sprintf("Element %d must have at least 2 columns: time (second-to-last) and response (last).", i))
       if (nrow(e) == 0) return(NULL)
+      if (n_cov > 0) {
+        if (nc < 2L + n_cov)
+          stop(sprintf("With n_cov = %d, element %d must have at least %d columns: time, response and the covariates.", n_cov, i, 2L + n_cov))
+        out_i <- data.frame(id = ids[i], t = .im_num(e[[1]]), y = .im_num(e[[2]]),
+                            stringsAsFactors = FALSE)
+        return(cbind(out_i, grab(e, 2L + seq_len(n_cov))))
+      }
       data.frame(id = ids[i], t = .im_num(e[[nc - 1]]), y = .im_num(e[[nc]]),
                  stringsAsFactors = FALSE)
     })
@@ -213,9 +275,31 @@ infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
   stop("'data' must be a data.frame, a list of data.frames or a list of matrices.")
 }
 
+# numeric design of the covariates (dummy coding, centering) on the kept rows
+.im_covariate_design <- function(cov_raw, ok) {
+  if (is.null(cov_raw)) return(list(X = NULL, names = character(0), center = numeric(0)))
+  cv <- cov_raw[ok, , drop = FALSE]
+  cv[] <- lapply(cv, function(v) if (is.character(v)) factor(v) else v)
+  cv <- droplevels(cv)
+  X <- stats::model.matrix(~ ., data = cv)[, -1, drop = FALSE]
+  colnames(X) <- make.names(colnames(X), unique = TRUE)
+  keep <- apply(X, 2, function(v) stats::var(v) > 0)
+  if (any(!keep))
+    warning("Covariate column(s) without variation removed: ",
+            paste(colnames(X)[!keep], collapse = ", "), call. = FALSE)
+  X <- X[, keep, drop = FALSE]
+  if (ncol(X) == 0) return(list(X = NULL, names = character(0), center = numeric(0)))
+  center <- colMeans(X)
+  X <- sweep(X, 2, center)
+  nm <- paste0("cov_", colnames(X))
+  colnames(X) <- nm
+  list(X = as.data.frame(X), names = nm, center = stats::setNames(center, nm))
+}
+
 # full fit for a given random-effect structure
-.im_fit_one <- function(d, re, K_max, K_fixed = NULL, df, degree, penalty, pen_order, s2_min, prior,
-                        min_size, K0,
+.im_fit_one <- function(d, re, K_max, K_fixed = NULL, df, degree, penalty, pen_order,
+                        cov_names = character(0), cov_center = numeric(0),
+                        weights = "constant", min_size, K0,
                         criterion, a_dir,
                         n_outer, quick_cycles, full_cycles, inner_cap, tol,
                         nstart, verbose) {
@@ -226,8 +310,17 @@ infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
   basis <- .im_make_basis(d$t, df, degree)
   B <- .im_basis_eval(basis, d$t)
   Zm <- .im_Z(basis, re, d$t, B)
+  p0 <- ncol(B)                      # spline part
+  r <- length(cov_names)             # covariates
+  if (r > 0) B <- cbind(B, as.matrix(d[cov_names]))   # augmented design [B | X]
   p <- ncol(B)
   q <- ncol(Zm)
+  # subject-level design of the concomitant weights: (1, mean covariates)
+  Wc <- NULL
+  if (weights == "covariates") {
+    Xs <- rowsum(as.matrix(d[cov_names]), idx, reorder = TRUE) / tabulate(idx, N)
+    Wc <- cbind(1, unname(Xs))
+  }
   
   S <- .im_design_stats(B, Zm, d$y, idx, N)
   S$groups <- .im_groups(B, Zm, d$y, idx, N)
@@ -243,12 +336,11 @@ infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
   K_max <- as.integer(min(K_max, K0))
   
   vy <- stats::var(d$y)
-  floors <- list(G = 1e-8 * vy, s2 = s2_min * vy)
+  P <- matrix(0, p, p)                # penalty diag(P_spline, 0): gamma not smoothed
   if (penalty) {
-    P <- .im_penalty_matrix(basis, pen_order)
-    rk <- p - pen_order
+    P[seq_len(p0), seq_len(p0)] <- .im_penalty_matrix(basis, pen_order)
+    rk <- p0 - pen_order
   } else {
-    P <- matrix(0, p, p)
     rk <- 0
   }
   # residuals of the one-class model and empirical variogram (nugget, sill)
@@ -256,14 +348,16 @@ infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
   beta0 <- solve(Qtot + diag(1e-8 * mean(diag(Qtot)), p), colSums(S$cc))
   r0 <- d$y - as.vector(B %*% beta0)
   vario <- .im_variogram(idx, d$t, r0)
-  pr <- .im_resolve_prior(prior, q, vy, vario, Zm, floors$s2)
-  if (verbose && !is.null(pr))
+  pr <- .im_prior(q, vy, vario, Zm)
+  # no floor on s2: the priors guarantee s2 > 0
+  floors <- list(G = 1e-8 * vy, s2 = 0)
+  if (verbose)
     message(sprintf("  variogram: nugget = %.4g, sill = %.4g (%d pairs%s)",
                     pr$nugget, vario$sill, vario$n_pairs,
                     if (pr$nugget_source == "variogram") "" else
                       paste0("; nugget: ", pr$nugget_source)))
   ctrl <- list(inner_cap = inner_cap, tol = tol, floors = floors,
-               P = P, rk = rk, penalty = penalty, prior = pr)
+               P = P, rk = rk, penalty = penalty, prior = pr, Wc = Wc)
   score <- function(f) {
     tb <- .im_criteria_table(list(f), q, N, penalty)
     if (criterion == "BIC") tb$BIC else tb$ICL
@@ -273,9 +367,10 @@ infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
                                N, nrow(d), p, q, K0))
   
   # one-class model (beta0 and r0 computed above)
-  v_res <- max(mean(r0^2), 2 * floors$s2)
+  v_res <- max(mean(r0^2), 1e-8 * vy)  # strictly positive starting value
   fits <- vector("list", K_max)
-  lam0 <- if (penalty) 1e-3 * mean(diag(Qtot)) / (v_res * mean(diag(P))) else 0
+  lam0 <- if (penalty) 1e-3 * mean(diag(Qtot)[seq_len(p0)]) /
+    (v_res * mean(diag(P)[seq_len(p0)])) else 0
   fits[[1]] <- .im_em(S, 1L, matrix(1, N, 1), diag(v_res / 2, q), v_res / 2, lam0,
                       full_cycles, ctrl)
   G <- fits[[1]]$G
@@ -366,7 +461,19 @@ infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
   
   best <- fits[[K_hat]]
   ord <- order(best$pi, decreasing = TRUE)
-  beta <- best$beta[, ord, drop = FALSE]
+  beta <- best$beta[seq_len(p0), ord, drop = FALSE]
+  gamma <- NULL
+  if (r > 0) {
+    gamma <- best$beta[p0 + seq_len(r), ord, drop = FALSE]
+    dimnames(gamma) <- list(sub("^cov_", "", cov_names), paste0("C", seq_len(K_hat)))
+  }
+  alpha <- NULL
+  if (!is.null(best$alpha)) {
+    alpha <- best$alpha[, ord, drop = FALSE]
+    alpha <- alpha - alpha[, 1]                 # reference: cluster C1
+    dimnames(alpha) <- list(c("(Intercept)", sub("^cov_", "", cov_names)),
+                            paste0("C", seq_len(K_hat)))
+  }
   tau <- best$tau[, ord, drop = FALSE]
   labs <- paste0("C", seq_len(K_hat))
   dimnames(tau) <- list(as.character(ids), labs)
@@ -381,6 +488,10 @@ infomergecluster <- function(data, K_max = 8, K = NULL, df = 15, degree = 3,
     posterior = tau,
     pi        = stats::setNames(best$pi[ord], labs),
     beta      = beta,
+    gamma     = gamma,
+    alpha     = alpha,
+    weights   = weights,
+    covariates = if (r > 0) list(names = cov_names, center = cov_center) else NULL,
     Vbeta     = stats::setNames(best$Vbeta[ord], labs),
     G         = best$G,
     sigma2    = best$s2,

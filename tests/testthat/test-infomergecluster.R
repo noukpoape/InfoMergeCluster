@@ -47,24 +47,46 @@ test_that("adjusted_rand is 1 for identical partitions", {
   expect_equal(adjusted_rand(a, c(3, 1, 2)[a]), 1)
 })
 
-test_that("scenario 1 example runs with both data formats", {
+test_that("scenario 1 with its reference settings runs with both data formats", {
   set.seed(1)
-  g1 <- f.data.generation(senario = 1)
-  f_df <- infomergecluster(g1$df, K = 2, verbose = FALSE, seed = 1)
-  f_ls <- infomergecluster(g1$liste, K = 2, verbose = FALSE, seed = 1)
+  g1 <- f.data.generation(senario = 1, n.k = c(43, 57), n.cts = c(1.8, 2.4), n.min = 2)
+  f_df <- infomergecluster(g1$df, K = 2, re = "intercept", verbose = FALSE, seed = 1)
+  f_ls <- infomergecluster(g1$liste, K = 2, re = "intercept", verbose = FALSE, seed = 1)
   expect_equal(f_df$K, 2L)
   expect_equal(f_ls$K, 2L)
-  expect_length(f_df$cluster, 50)
+  expect_length(f_df$cluster, 100)
 })
 
-test_that("f.data.generation uses the reference settings of each scenario", {
-  sizes <- list(c(20, 30), c(20, 30, 25), c(20, 30, 25, 35), c(20, 30, 25, 35, 40))
+test_that("f.data.generation reproduces the reference group sizes", {
+  ref <- list(
+    list(n.k = c(43, 57),             n.cts = c(1.8, 2.4),           n.min = 2),
+    list(n.k = c(35, 43, 72),         n.cts = c(2, 2.3, 2.7),        n.min = 3),
+    list(n.k = c(34, 67, 71, 28),     n.cts = c(0.9, 1.5, 2.2, 2.4), n.min = 3),
+    list(n.k = c(60, 85, 45, 70, 50), n.cts = rep(0, 5),             n.min = 3)
+  )
   for (s in 1:4) {
-    g <- f.data.generation(senario = s)
-    expect_equal(as.vector(table(attr(g$liste, "groupe"))), sizes[[s]])
+    g <- do.call(f.data.generation, c(list(senario = s), ref[[s]]))
+    expect_equal(as.vector(table(attr(g$liste, "groupe"))), ref[[s]]$n.k)
     expect_false(anyNA(g$df$y))
+    expect_gte(min(sapply(g$liste, nrow)), ref[[s]]$n.min)
   }
-  expect_error(f.data.generation(senario = 1, n.k = c(10, 10, 10), n.cts = c(1, 2)))
+})
+
+test_that("covariates and covariate-dependent weights", {
+  set.seed(2)
+  dat <- long[, c("id", "x", "y")]
+  n_i <- as.vector(table(factor(dat$id, levels = unique(dat$id))))
+  dat$sex <- rep(sample(c("F", "M"), length(n_i), replace = TRUE), n_i)
+  dat$age <- rep(round(runif(length(n_i), 20, 60)), n_i)
+  fit <- infomergecluster(dat, K = 2, n_cov = 2, verbose = FALSE, seed = 1)
+  expect_equal(dim(fit$gamma), c(2L, 2L))
+  expect_null(fit$alpha)
+  pr <- predict(fit, times = c(0, 0.5, 1), covariates = c(1, 40))
+  expect_equal(nrow(pr), 3)
+  fit_w <- infomergecluster(dat, K = 2, n_cov = 2, weights = "covariates",
+                            verbose = FALSE, seed = 1)
+  expect_equal(dim(fit_w$alpha), c(3L, 2L))
+  expect_error(infomergecluster(long, K = 2, weights = "covariates", verbose = FALSE))
 })
 
 test_that("infomergecluster_citation returns the BibTeX entry", {

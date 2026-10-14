@@ -4,7 +4,8 @@
 \title{Mean trajectories of the clusters}
 \usage{
 \method{predict}{infomergecluster}(object, times = NULL,
-  interval = c("none", "confidence", "prediction"), level = 0.95, ...)
+  interval = c("none", "confidence", "prediction"), level = 0.95,
+  covariates = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class \code{"infomergecluster"}.}
@@ -14,6 +15,10 @@
 \item{interval}{\code{"none"}, \code{"confidence"} or \code{"prediction"}.}
 
 \item{level}{level of the envelope.}
+
+\item{covariates}{\code{NULL} (curves at the mean covariate values) or a
+  numeric vector of covariate values on the original scale, in the order
+  of \code{rownames(object$gamma)} (dummy-coded for factors).}
 
 \item{...}{unused.}
 }

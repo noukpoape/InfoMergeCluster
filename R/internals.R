@@ -44,68 +44,36 @@
        lag_max = max(u[sel]))
 }
 
-# completes and checks the hyperparameters; returns NULL if there is no prior
-#   vario: output of .im_variogram; Zm: random-effect design;
-#   floor_s2: absolute floor on s2 (the nugget is not taken below it)
-.im_resolve_prior <- function(prior, q, vy, vario, Zm, floor_s2) {
-  if (is.null(prior) || isFALSE(prior)) return(NULL)
-  if (isTRUE(prior)) prior <- list()
-  if (!is.list(prior)) stop("'prior' must be NULL, FALSE, TRUE or a list.")
-  known <- c("nu0", "Psi0", "a_sigma", "b_sigma", "g_share", "nugget")
-  bad <- setdiff(names(prior), known)
-  if (length(bad))
-    stop("Unknown element(s) in 'prior': ", paste(bad, collapse = ", "),
-         " (expected: ", paste(known, collapse = ", "), ").")
-  g_share <- if (is.null(prior$g_share)) 0.5 else prior$g_share
-  if (!is.numeric(g_share) || length(g_share) != 1 || g_share <= 0)
-    stop("'prior$g_share' must be a real number > 0.")
-  # nugget: imposed, otherwise estimated; fallback if the variogram is unusable
-  if (!is.null(prior$nugget)) {
-    nugget <- prior$nugget
-    if (!is.numeric(nugget) || length(nugget) != 1 || nugget <= 0)
-      stop("'prior$nugget' must be a real number > 0.")
-    src <- "imposed"
-  } else if (is.finite(vario$nugget)) {
+# prior hyperparameters, calibrated on the variogram (not user-settable)
+#   G ~ IW_q(nu0 = q, Psi0),  s2 ~ IG(a_sigma = 1, b_sigma)
+#   prior mode of s2 = nugget; prior mode of G = g I_q, with g such that the
+#   mean variance of Z(t)'u at the observed times equals
+#   g_share (sill - nugget), g_share = 0.5
+#   vario: output of .im_variogram; Zm: random-effect design
+.im_prior <- function(q, vy, vario, Zm) {
+  g_share <- 0.5
+  nu0 <- q
+  a <- 1
+  # estimated nugget; fallback if the variogram is unusable
+  if (is.finite(vario$nugget)) {
     nugget <- vario$nugget
     src <- "variogram"
   } else {
     nugget <- 0.05 * vario$sill
     src <- "fallback 5% of the sill (too few within-subject pairs)"
   }
-  nugget <- max(nugget, floor_s2, 1e-8 * vy)
-  # prior mode of G: mean variance of Z(t)'u = g_share (sill - nugget)
+  nugget <- max(nugget, 1e-8 * vy)  # safeguard on the hyperparameter (b_sigma > 0)
   proc <- max(vario$sill - nugget, 1e-8 * vy)
   g_mode <- g_share * proc / mean(rowSums(Zm^2))
-  nu0 <- if (is.null(prior$nu0)) q else prior$nu0
-  if (!is.numeric(nu0) || length(nu0) != 1 || nu0 <= q - 1)
-    stop(sprintf("'prior$nu0' must be a real number > q - 1 = %d.", q - 1))
-  a <- if (is.null(prior$a_sigma)) 1 else prior$a_sigma
-  if (!is.numeric(a) || length(a) != 1 || a <= 0) stop("'prior$a_sigma' must be > 0.")
-  Psi0 <- prior$Psi0
-  if (is.null(Psi0)) {
-    Psi0 <- diag((nu0 + q + 1) * g_mode, q)
-  } else if (length(Psi0) == 1) {
-    Psi0 <- as.numeric(Psi0)
-    if (!is.finite(Psi0) || Psi0 <= 0) stop("Scalar 'prior$Psi0' must be > 0.")
-    Psi0 <- diag(Psi0, q)
-  } else {
-    Psi0 <- as.matrix(Psi0)
-    if (!all(dim(Psi0) == q))
-      stop(sprintf("'prior$Psi0' must be a %d x %d matrix or a scalar.", q, q))
-    Psi0 <- (Psi0 + t(Psi0)) / 2
-    if (inherits(tryCatch(chol(Psi0), error = function(e) e), "error"))
-      stop("'prior$Psi0' must be positive definite.")
-  }
-  b <- if (is.null(prior$b_sigma)) (a + 1) * nugget else prior$b_sigma
-  if (!is.numeric(b) || length(b) != 1 || b <= 0) stop("'prior$b_sigma' must be > 0.")
+  Psi0 <- diag((nu0 + q + 1) * g_mode, q)
+  b <- (a + 1) * nugget
   list(nu0 = nu0, Psi0 = Psi0, a_sigma = a, b_sigma = b, q = q,
        nugget = nugget, nugget_source = src, g_mode = g_mode, g_share = g_share)
 }
 
-# log p0(G, s2), up to a constant (0 when there is no prior)
+# log p0(G, s2), up to a constant
 #   -(nu0 + q + 1)/2 log|G| - tr(Psi0 G^-1)/2 - (a + 1) log s2 - b / s2
 .im_log_prior <- function(G, s2, pr) {
-  if (is.null(pr)) return(0)
   q <- nrow(G)
   -0.5 * (pr$nu0 + q + 1) * .im_logdet(G) - 0.5 * sum(pr$Psi0 * .im_inv(G)) -
     (pr$a_sigma + 1) * log(s2) - pr$b_sigma / s2
@@ -329,7 +297,8 @@
   L <- matrix(0, N, K)
   for (k in seq_len(K)) {
     bk <- beta[, k]
-    L[, k] <- log(max(pik[k], 1e-300)) + st$c0 + as.vector(st$b %*% bk) -
+    lp <- if (is.matrix(pik)) log(pmax(pik[, k], 1e-300)) else log(max(pik[k], 1e-300))
+    L[, k] <- lp + st$c0 + as.vector(st$b %*% bk) -
       0.5 * as.vector(st$A %*% as.vector(tcrossprod(bk)))
   }
   mx <- L[cbind(seq_len(N), max.col(L, ties.method = "first"))]
@@ -352,6 +321,71 @@
     beta[, k] <- solve(H[[k]], bT[, k])
   }
   list(beta = beta, pi = colMeans(tau), H = H, AT = AT)
+}
+
+# M-step of the concomitant weights pi_k(x_i) = softmax(W_i alpha)_k:
+#   maximizes sum_ik tau_ik log pi_ik - ridge/2 |slopes|^2 (cluster 1 =
+#   reference), by Newton steps with step halving; W: N x (1 + r).
+.im_mstep_pi <- function(tau, W, ridge = 1e-4, iters = 25, tol = 1e-9) {
+  N <- nrow(tau)
+  K <- ncol(tau)
+  dw <- ncol(W)
+  A <- matrix(0, dw, K)
+  if (K == 1) return(list(alpha = A, P = matrix(1, N, 1)))
+  nk <- colSums(tau)
+  A[1, ] <- log(pmax(nk, 1e-10) / max(nk[1], 1e-10))
+  A[1, 1] <- 0
+  sm <- function(A) {
+    E <- W %*% A
+    E <- E - apply(E, 1, max)
+    Pm <- exp(E)
+    Pm / rowSums(Pm)
+  }
+  obj <- function(A) {
+    E <- W %*% A
+    mx <- apply(E, 1, max)
+    sum(tau * E) - sum(rowSums(tau) * (mx + log(rowSums(exp(E - mx))))) -
+      0.5 * ridge * sum(A[-1, -1]^2)
+  }
+  Km <- K - 1
+  pen <- rep(c(0, rep(ridge, dw - 1)), Km)
+  f_old <- obj(A)
+  for (it in seq_len(iters)) {
+    Pm <- sm(A)
+    R <- tau - Pm
+    gA <- crossprod(W, R[, -1, drop = FALSE])
+    gA[-1, ] <- gA[-1, ] - ridge * A[-1, -1, drop = FALSE]
+    H <- matrix(0, dw * Km, dw * Km)
+    for (j in seq_len(Km)) for (l in j:Km) {
+      wgt <- Pm[, j + 1] * ((j == l) - Pm[, l + 1])
+      blk <- crossprod(W * wgt, W)
+      ij <- (j - 1) * dw + seq_len(dw)
+      il <- (l - 1) * dw + seq_len(dw)
+      H[ij, il] <- blk
+      H[il, ij] <- t(blk)
+    }
+    H <- H + diag(pen + 1e-8, dw * Km)
+    step <- matrix(solve(H, as.vector(gA)), dw, Km)
+    stp <- 1
+    repeat {
+      An <- A
+      An[, -1] <- A[, -1] + stp * step
+      f_new <- obj(An)
+      if (is.finite(f_new) && f_new >= f_old - 1e-12) break
+      stp <- stp / 2
+      if (stp < 1e-4) { An <- A; f_new <- f_old; break }
+    }
+    A <- An
+    done <- abs(f_new - f_old) < tol * (1 + abs(f_old))
+    f_old <- f_new
+    if (done) break
+  }
+  list(alpha = A, P = sm(A))
+}
+
+# weights used by the E-step: vector pi_k, or N x K matrix pi_k(x_i)
+.im_weights <- function(tau, ms, ctrl) {
+  if (is.null(ctrl$Wc)) ms$pi else .im_mstep_pi(tau, ctrl$Wc)$P
 }
 
 # update of the smoothing parameter (Fellner-Schall):
@@ -379,11 +413,10 @@
 
 # M-step for (G, s2), vectorized
 #   E[u_i | y_i, z_i = k] = G (Z'V^-1 y - Z'V^-1 B beta_k),  Var = G - G Z'V^-1 Z G
-#   without prior:  G <- Sigma_G,  s2 <- sse / sum(n_i)
-#   with prior:     G <- (N Sigma_G + Psi0) / (N + nu0 + q + 1),
-#                   s2 <- (sse + 2 b) / (sum(n_i) + 2 a + 2)
-#   then clipping at the floors (eigenvalues of G, then s2).
-.im_mstep_cov <- function(S, st, tau, beta, G, floors, prior = NULL) {
+#   posterior mode:  G <- (N Sigma_G + Psi0) / (N + nu0 + q + 1),
+#                    s2 <- (sse + 2 b) / (sum(n_i) + 2 a + 2)  (> 0 by construction)
+#   then numerical safeguard: eigenvalues of G >= floors$G.
+.im_mstep_cov <- function(S, st, tau, beta, G, floors, prior) {
   q <- S$q
   N <- S$N
   Iq <- diag(q)
@@ -408,13 +441,8 @@
   trGZZ <- as.vector(S$ZZ %*% as.vector(G))
   trGZVZGZZ <- rowSums((st$ZVZ %*% kronecker(G, G)) * S$ZZ)
   sse <- sse + sum(trGZZ - trGZVZGZZ)
-  if (is.null(prior)) {
-    G_new <- Euu / N
-    s2_new <- sse / sum(S$n)
-  } else {
-    G_new <- (Euu + prior$Psi0) / (N + prior$nu0 + q + 1)
-    s2_new <- (sse + 2 * prior$b_sigma) / (sum(S$n) + 2 * prior$a_sigma + 2)
-  }
+  G_new <- (Euu + prior$Psi0) / (N + prior$nu0 + q + 1)
+  s2_new <- (sse + 2 * prior$b_sigma) / (sum(S$n) + 2 * prior$a_sigma + 2)
   list(G = .im_psd_floor(G_new, floors$G), s2 = max(s2_new, floors$s2))
 }
 
@@ -438,10 +466,14 @@
   cs <- .im_unpack(th, S$q, ctrl$floors, ctrl$penalty)
   st <- .im_subject_stats(S, cs$G, cs$s2)
   ms <- .im_mstep_beta(st, tau, cs$lam, ctrl$P)
+  pw <- .im_weights(tau, ms, ctrl)
   for (it in seq_len(ctrl$inner_cap)) {
-    es <- .im_estep(st, ms$beta, ms$pi)
+    es <- .im_estep(st, ms$beta, pw)
     tau <- es$tau
-    if (it < ctrl$inner_cap) ms <- .im_mstep_beta(st, tau, cs$lam, ctrl$P)
+    if (it < ctrl$inner_cap) {
+      ms <- .im_mstep_beta(st, tau, cs$lam, ctrl$P)
+      pw <- .im_weights(tau, ms, ctrl)
+    }
   }
   pen <- 0
   lam_new <- 0
@@ -483,15 +515,18 @@
   cs <- .im_unpack(th0, S$q, ctrl$floors, ctrl$penalty)
   st <- .im_subject_stats(S, cs$G, cs$s2)
   ms <- .im_mstep_beta(st, tau, cs$lam, ctrl$P)
+  pw <- .im_weights(tau, ms, ctrl)
   ll <- -Inf
   for (it in seq_len(max_iter)) {
-    es <- .im_estep(st, ms$beta, ms$pi)
+    es <- .im_estep(st, ms$beta, pw)
     tau <- es$tau
     conv <- abs(es$ll - ll) < 1e-9 * abs(es$ll)
     ll <- es$ll
     if (conv) break
     ms <- .im_mstep_beta(st, tau, cs$lam, ctrl$P)
+    pw <- .im_weights(tau, ms, ctrl)
   }
+  alpha <- if (is.null(ctrl$Wc)) NULL else .im_mstep_pi(tau, ctrl$Wc)$alpha
   p <- S$p
   edf <- sum(vapply(seq_len(K), function(k)
     sum(diag(solve(ms$H[[k]], matrix(ms$AT[, k], p, p)))), numeric(1)))
@@ -500,6 +535,8 @@
   # ll: log-likelihood l_N (BIC/ICL); log_prior: log p0 at the posterior mode
   list(K = K, beta = ms$beta, pi = colMeans(tau), G = cs$G, s2 = cs$s2, lam = cs$lam,
        edf = edf, tau = tau, ll = ll, log_prior = .im_log_prior(cs$G, cs$s2, ctrl$prior),
+       alpha = alpha,
+       n_alpha = if (is.null(ctrl$Wc)) 0 else (K - 1) * (ncol(ctrl$Wc) - 1),
        n_eval = n_eval, Vbeta = Vbeta)
 }
 
@@ -625,7 +662,8 @@
   rows <- lapply(fits, function(f) {
     if (is.null(f)) return(NULL)
     K <- f$K
-    dK <- (K - 1) + f$edf + q * (q + 1) / 2 + 1 + as.numeric(penalty)
+    n_alpha <- if (is.null(f$n_alpha)) 0 else f$n_alpha
+    dK <- (K - 1) + n_alpha + f$edf + q * (q + 1) / 2 + 1 + as.numeric(penalty)
     tt <- f$tau[f$tau > 0]
     ent <- -sum(tt * log(tt))
     bic <- -2 * f$ll + dK * log(N)
@@ -642,10 +680,10 @@
 }
 
 .im_inv <- function(M) chol2inv(chol(M))
-
-.im_logdet <- function(M) 2 * sum(log(diag(chol(M))))
-
-.im_psd_floor <- function(M, floor_abs) {
+                    
+                    .im_logdet <- function(M) 2 * sum(log(diag(chol(M))))
+                    
+                    .im_psd_floor <- function(M, floor_abs) {
   M <- (M + t(M)) / 2
   e <- eigen(M, symmetric = TRUE)
   v <- pmax(e$values, floor_abs)

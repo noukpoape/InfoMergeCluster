@@ -3,10 +3,12 @@
 
 #' InfoMergeCluster: clustering of sparse longitudinal data
 #'
-#' Model-based clustering of sparse and irregular longitudinal data, with
-#' penalized B-spline mean trajectories, a random effect, conjugate priors on
-#' the variance structure calibrated on the empirical variogram, and
-#' automatic (BIC/ICL) or user-imposed choice of the number of clusters.
+#' Model-based clustering of sparse and irregular longitudinal data with a
+#' mixture of linear mixed models: penalized B-spline mean trajectories, a
+#' random effect, conjugate priors on the variance structure calibrated on
+#' the empirical variogram, optional covariates (on the trajectories and on
+#' the cluster proportions), and automatic (BIC/ICL) or user-imposed choice
+#' of the number of clusters.
 #'
 #' Main functions:
 #' \itemize{

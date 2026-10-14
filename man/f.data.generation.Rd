@@ -3,16 +3,14 @@
 \alias{f.data.generation}
 \title{Generate test data (scenarios 1 to 4)}
 \usage{
-f.data.generation(senario = 1, n.k = NULL, n.cts = NULL, n.min = 2)
+f.data.generation(senario = 1, n.k = c(20, 30), n.cts = c(1.8, 2.4), n.min = 2)
 }
 \arguments{
 \item{senario}{scenario (1 to 4).}
 
-\item{n.k}{number of curves in each group (\code{NULL} = reference sizes
-  of the scenario, see Details).}
+\item{n.k}{number of curves in each group (see the reference settings in Details).}
 
-\item{n.cts}{constant shift of each group, one value per group
-  (\code{NULL} = reference shifts, see Details).}
+\item{n.cts}{constant level shift of each group, one value per group.}
 
 \item{n.min}{minimum number of measurements per curve.}
 }
@@ -27,29 +25,46 @@ and returns them both as a list of matrices and as a long data.frame
 (the two formats contain exactly the same data).
 }
 \details{
-Each curve is observed at \code{n.min + Binomial(8, 0.5)} sorted uniform
-times on [0, 1]; its group sets the mean shape and the constant shift.
-
-\strong{Reference settings of each scenario.} When \code{n.k} and
-\code{n.cts} are left to \code{NULL}, the following default values are used:
-\tabular{clll}{
-  \strong{Scenario} \tab \strong{Groups} \tab \strong{Group sizes} \code{n.k} \tab \strong{Shifts} \code{n.cts} \cr
-  1 \tab 2 \tab \code{c(20, 30)} (50 curves) \tab \code{c(1.8, 2.4)} \cr
-  2 \tab 3 \tab \code{c(20, 30, 25)} (75 curves) \tab \code{c(1.8, 2.4, 3.0)} \cr
-  3 \tab 4 \tab \code{c(20, 30, 25, 35)} (110 curves) \tab \code{c(1.8, 2.4, 3.0, 3.6)} \cr
-  4 \tab 5 \tab \code{c(20, 30, 25, 35, 40)} (150 curves) \tab \code{c(1.8, 2.4, 3.0, 3.6, 4.2)} \cr
+Each curve is observed at \code{n.min + Binomial(8, 1/2)} sorted uniform
+times on [0, 1]. A curve of group \eqn{k} is
+\eqn{y_{ij} = f_{0k}(t_{ij}) + u_i}, where \eqn{u_i} is a random intercept
+and no measurement error is added. The mean curves are
+\tabular{ll}{
+  S1: \tab \eqn{f_{0k}(t) = 5/3 + c_k - \cos(1.8\pi t) - \sin(\omega_k t)}, \cr
+  S2: \tab \eqn{f_{0k}(t) = 3/2 + c_k - \cos(\omega_k \pi t^3)}, \cr
+  S3: \tab \eqn{f_{0k}(t) = 5/3 + c_k + \sin(\omega_k \pi t) + \sin(\pi t^2)}, \cr
+  S4: \tab \eqn{f_{0k}(t) = 7/4 + c_k + \cos(\omega_k \pi t) - t^2}, \cr
 }
-Other group sizes can be given in \code{n.k}; the default shifts are then
-\code{1.8 + 0.6 * (k - 1)} for group \code{k}.
+with frequencies \eqn{\omega = (1.8, 2.2)} in S1, \eqn{(1.5, 1.7, 1.9)} in
+S2, \eqn{(1.5, 1.7, 1.9, 1.6)} in S3 and \eqn{(1, 1.2, 1.4, 1.6, 1.8)} in
+S4 (the last value is used for any further group), and level shifts
+\eqn{c_k} given by \code{n.cts}.
+
+\strong{Reference settings of each scenario.} The reference data sets of
+the four scenarios (study A of the simulation study of InfoMergeCluster)
+use the following group sizes \code{n.k}, shifts \code{n.cts} and
+\code{n.min}:
+\tabular{cccccc}{
+  \strong{Scenario} \tab \strong{K} \tab \strong{N} \tab \strong{Group sizes} \code{n.k} \tab \strong{Shifts} \code{n.cts} \tab \code{n.min} \cr
+  S1 \tab 2 \tab 100 \tab \strong{\code{c(43, 57)}} \tab \code{c(1.8, 2.4)} \tab 2 \cr
+  S2 \tab 3 \tab 150 \tab \strong{\code{c(35, 43, 72)}} \tab \code{c(2, 2.3, 2.7)} \tab 3 \cr
+  S3 \tab 4 \tab 200 \tab \strong{\code{c(34, 67, 71, 28)}} \tab \code{c(0.9, 1.5, 2.2, 2.4)} \tab 3 \cr
+  S4 \tab 5 \tab 310 \tab \strong{\code{c(60, 85, 45, 70, 50)}} \tab \code{rep(0, 5)} \tab 3 \cr
+}
+The default values of the arguments (\code{n.k = c(20, 30)},
+\code{n.cts = c(1.8, 2.4)}, \code{n.min = 2}) give a small two-group data
+set; give the values above to reproduce the reference settings.
 }
 \examples{
-# scenario 1 with its reference settings: 2 groups of 20 and 30 curves
+# scenario 1 with its reference settings: 2 groups of 43 and 57 curves
 set.seed(1)
-gen <- f.data.generation(senario = 1)
+gen <- f.data.generation(senario = 1, n.k = c(43, 57), n.cts = c(1.8, 2.4), n.min = 2)
 plot.data(gen$liste, legend = TRUE)
 plot.data(gen$df, data.forma = 2)
+table(attr(gen$liste, "groupe"))
 
 # reference settings of the other scenarios
-table(attr(f.data.generation(senario = 2)$liste, "groupe"))
-table(attr(f.data.generation(senario = 4)$liste, "groupe"))
+s2 <- f.data.generation(2, n.k = c(35, 43, 72), n.cts = c(2, 2.3, 2.7), n.min = 3)
+s3 <- f.data.generation(3, n.k = c(34, 67, 71, 28), n.cts = c(0.9, 1.5, 2.2, 2.4), n.min = 3)
+s4 <- f.data.generation(4, n.k = c(60, 85, 45, 70, 50), n.cts = rep(0, 5), n.min = 3)
 }
