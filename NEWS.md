@@ -16,6 +16,11 @@
   `infomergecluster_stability()`.
 * Data generator `f.data.generation()` (scenarios 1 to 4, reference settings
   documented in its help page) and `plot.data()`.
+* `f.data.generation()`: the random intercept of each curve is
+  `U(-a, a) + N(0, s^2)` (uniform first shift, formerly normal), with the
+  parameters of each scenario stored in a table; the mean level of the curves
+  is `2 + c_k`. For a given seed, the generated data differ from those of the
+  earlier development version.
 * `infomergecluster_citation()`: BibTeX entry (Google Scholar format) or
   plain-text reference of the package; the entry is also installed as
   `CITATION.bib`.

@@ -5,21 +5,32 @@
 #  Test data generator (scenarios 1 to 4)                                     #
 # =========================================================================== #
 
-# frequencies by scenario and group (the last listed group applies to higher k)
-.fsen_freq <- list(c(1.8, 2.2), c(1.5, 1.7, 1.9), c(1.5, 1.7, 1.9, 1.6),
-                   c(1, 1.2, 1.4, 1.6, 1.8))
+# parameters by scenario: uniform shift U(-a, a), standard deviation sd of the
+# normal shift N(2, sd), frequencies w by group (the last one applies to higher k)
+.fsen_par <- list(
+  list(a = 1/3,  sd = 0.4, w = c(1.8, 2.2)),
+  list(a = 0.5,  sd = 0.4, w = c(1.5, 1.7, 1.9)),
+  list(a = 1/3,  sd = 0.4, w = c(1.5, 1.7, 1.9, 1.6)),
+  list(a = 0.25, sd = 0.3, w = c(1, 1.2, 1.4, 1.6, 1.8))
+)
 
-# same order of operations and random draws as the previous version:
-# the generated data are identical for a given seed
+# mean shape of the curves, by scenario (w: frequency of the group)
+.fsen_shape <- list(
+  function(x, w) -cos(1.8*pi*x) - sin(w*x),
+  function(x, w) -cos(w*pi*x^3),
+  function(x, w)  sin(w*pi*x) + sin(pi*x^2),
+  function(x, w)  cos(w*pi*x) - x^2
+)
+
+# curve of group k: U(-a, a) + cst + shape + N(2, sd), one draw of each shift
+# per curve; scenario 4 for any value of 'senario' outside 1:3.
+# Random draws in the order runif then rnorm, as in the reference
+# implementation of the scenarios.
 fsenario <- function(x, senario, k, cst = 0) {
   s <- if (senario %in% 1:3) senario else 4L
-  w <- .fsen_freq[[s]]
-  w <- w[min(k, length(w))]
-  switch(s,
-         rnorm(1, -1/3, 1/3) + cst - cos(1.8*pi*x) - sin(w*x) + rnorm(1, 2, 0.4),
-         rnorm(1, -0.5, 0.5) + cst - cos(w*pi*x^3) + rnorm(1, 2, 0.4),
-         rnorm(1, -1/3, 1/3) + cst + sin(w*pi*x) + sin(pi*x^2) + rnorm(1, 2, 0.4),
-         rnorm(1, -0.25, 0.25) + cst + cos(w*pi*x) - x^2 + rnorm(1, 2, 0.3))
+  p <- .fsen_par[[s]]
+  w <- p$w[min(k, length(p$w))]
+  runif(1, -p$a, p$a) + cst + .fsen_shape[[s]](x, w) + rnorm(1, 2, p$sd)
 }
 
 #' Generate test data (scenarios 1 to 4)
@@ -30,13 +41,16 @@ fsenario <- function(x, senario, k, cst = 0) {
 #'
 #' Each curve is observed at \code{n.min + Binomial(8, 1/2)} sorted uniform
 #' times on [0, 1]. A curve of group \eqn{k} is
-#' \eqn{y_{ij} = f_{0k}(t_{ij}) + u_i}, where \eqn{u_i} is a random intercept
-#' and no measurement error is added. The mean curves are
+#' \eqn{y_{ij} = f_{0k}(t_{ij}) + u_i}, where
+#' \eqn{u_i = U_i + E_i}, \eqn{U_i \sim U(-a, a)} and
+#' \eqn{E_i \sim N(0, s^2)}, is a random intercept (one draw of each per
+#' curve) and no measurement error is added. The mean curves and the
+#' parameters \eqn{(a, s)} are
 #' \tabular{ll}{
-#'   S1: \tab \eqn{f_{0k}(t) = 5/3 + c_k - \cos(1.8\pi t) - \sin(\omega_k t)}, \cr
-#'   S2: \tab \eqn{f_{0k}(t) = 3/2 + c_k - \cos(\omega_k \pi t^3)}, \cr
-#'   S3: \tab \eqn{f_{0k}(t) = 5/3 + c_k + \sin(\omega_k \pi t) + \sin(\pi t^2)}, \cr
-#'   S4: \tab \eqn{f_{0k}(t) = 7/4 + c_k + \cos(\omega_k \pi t) - t^2}, \cr
+#'   S1: \tab \eqn{f_{0k}(t) = 2 + c_k - \cos(1.8\pi t) - \sin(\omega_k t)}, \eqn{a = 1/3}, \eqn{s = 0.4}, \cr
+#'   S2: \tab \eqn{f_{0k}(t) = 2 + c_k - \cos(\omega_k \pi t^3)}, \eqn{a = 1/2}, \eqn{s = 0.4}, \cr
+#'   S3: \tab \eqn{f_{0k}(t) = 2 + c_k + \sin(\omega_k \pi t) + \sin(\pi t^2)}, \eqn{a = 1/3}, \eqn{s = 0.4}, \cr
+#'   S4: \tab \eqn{f_{0k}(t) = 2 + c_k + \cos(\omega_k \pi t) - t^2}, \eqn{a = 1/4}, \eqn{s = 0.3}, \cr
 #' }
 #' with frequencies \eqn{\omega = (1.8, 2.2)} in S1, \eqn{(1.5, 1.7, 1.9)} in
 #' S2, \eqn{(1.5, 1.7, 1.9, 1.6)} in S3 and \eqn{(1, 1.2, 1.4, 1.6, 1.8)} in

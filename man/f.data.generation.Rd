@@ -27,13 +27,16 @@ and as a long data.frame (the two formats contain exactly the same data).
 \details{
 Each curve is observed at \code{n.min + Binomial(8, 1/2)} sorted uniform
 times on [0, 1]. A curve of group \eqn{k} is
-\eqn{y_{ij} = f_{0k}(t_{ij}) + u_i}, where \eqn{u_i} is a random intercept
-and no measurement error is added. The mean curves are
+\eqn{y_{ij} = f_{0k}(t_{ij}) + u_i}, where
+\eqn{u_i = U_i + E_i}, \eqn{U_i \sim U(-a, a)} and
+\eqn{E_i \sim N(0, s^2)}, is a random intercept (one draw of each per
+curve) and no measurement error is added. The mean curves and the
+parameters \eqn{(a, s)} are
 \tabular{ll}{
-  S1: \tab \eqn{f_{0k}(t) = 5/3 + c_k - \cos(1.8\pi t) - \sin(\omega_k t)}, \cr
-  S2: \tab \eqn{f_{0k}(t) = 3/2 + c_k - \cos(\omega_k \pi t^3)}, \cr
-  S3: \tab \eqn{f_{0k}(t) = 5/3 + c_k + \sin(\omega_k \pi t) + \sin(\pi t^2)}, \cr
-  S4: \tab \eqn{f_{0k}(t) = 7/4 + c_k + \cos(\omega_k \pi t) - t^2}, \cr
+  S1: \tab \eqn{f_{0k}(t) = 2 + c_k - \cos(1.8\pi t) - \sin(\omega_k t)}, \eqn{a = 1/3}, \eqn{s = 0.4}, \cr
+  S2: \tab \eqn{f_{0k}(t) = 2 + c_k - \cos(\omega_k \pi t^3)}, \eqn{a = 1/2}, \eqn{s = 0.4}, \cr
+  S3: \tab \eqn{f_{0k}(t) = 2 + c_k + \sin(\omega_k \pi t) + \sin(\pi t^2)}, \eqn{a = 1/3}, \eqn{s = 0.4}, \cr
+  S4: \tab \eqn{f_{0k}(t) = 2 + c_k + \cos(\omega_k \pi t) - t^2}, \eqn{a = 1/4}, \eqn{s = 0.3}, \cr
 }
 with frequencies \eqn{\omega = (1.8, 2.2)} in S1, \eqn{(1.5, 1.7, 1.9)} in
 S2, \eqn{(1.5, 1.7, 1.9, 1.6)} in S3 and \eqn{(1, 1.2, 1.4, 1.6, 1.8)} in
