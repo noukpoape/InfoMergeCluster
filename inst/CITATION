@@ -1,17 +1,15 @@
+citHeader("To cite InfoMergeCluster in publications, please use:")
+
 bibentry(
   bibtype  = "Manual",
-  key      = "noukpoape2026infomergecluster",
-  title    = "{InfoMergeCluster}: Clustering of Sparse Longitudinal Data with Automatic Selection of the Number of Clusters",
-  author   = c(person(given = c("Komlan", "Midodzi"), family = "Noukpoape",
-                      email = "noukpoape@gmail.com"),
-                 person(given = "Cristian", family = "Preda")),
+  title    = "{InfoMergeCluster}: Clustering of Sparse Longitudinal Data with Automatic Choice of the Number of Clusters",
+  author   = person("Komlan Midodzi", "Noukpoape", email = "noukpoape@gmail.com"),
   year     = "2026",
-  note     = "R package version 1.0.0",
+  note     = sprintf("R package version %s", meta$Version),
   url      = "https://github.com/noukpoape/InfoMergeCluster",
-  textVersion = paste(
-    "Noukpoape, K. M. and Preda, C. (2026).",
-    "InfoMergeCluster: Clustering of Sparse Longitudinal Data with Automatic",
-    "Selection of the Number of Clusters. R package version 1.0.0.",
-    "https://github.com/noukpoape/InfoMergeCluster"
-  )
+  textVersion = paste0(
+    "Noukpoape, K. M. (2026). InfoMergeCluster: Clustering of Sparse ",
+    "Longitudinal Data with Automatic Choice of the Number of Clusters. ",
+    "R package version ", meta$Version, ". ",
+    "https://github.com/noukpoape/InfoMergeCluster")
 )

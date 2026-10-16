@@ -1,22 +1,27 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
-title: "InfoMergeCluster: Clustering of Sparse Longitudinal Data with Automatic Selection of the Number of Clusters"
-version: 1.0.0
-date-released: 2026-10-12
-license: MIT
+title: "InfoMergeCluster: Clustering of Sparse Longitudinal Data with Automatic Choice of the Number of Clusters"
+abstract: >-
+  R package for clustering sparse longitudinal trajectories with a mixture of
+  linear mixed models whose mean curves are penalised B-splines, optionally with
+  covariates, and automatic selection of the number of clusters (exact-ICL merge
+  tree, SQUAREM-accelerated EM, BIC/ICL) or a number of clusters fixed by the user.
+authors:
+  - family-names: "Noukpoape"
+    given-names: "Komlan Midodzi"
+    email: "noukpoape@gmail.com"
+version: "1.0.0"
+date-released: "2026-10-16"
+license: GPL-3.0-or-later
 repository-code: "https://github.com/noukpoape/InfoMergeCluster"
 url: "https://github.com/noukpoape/InfoMergeCluster"
-authors:
-  - given-names: Komlan Midodzi
-    family-names: Noukpoape
-    email: noukpoape@gmail.com
-  - given-names: Cristian
-    family-names: Preda
 keywords:
   - R
   - clustering
   - longitudinal data
-  - sparse data
+  - mixed models
   - mixture models
   - B-splines
+  - EM algorithm
+  - model selection
