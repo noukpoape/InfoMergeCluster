@@ -1,20 +1,20 @@
+# Part of the InfoMergeCluster package.
+# Authors: Komlan Midodzi Noukpoape <noukpoape@gmail.com>, Cristian Preda
+
 # =========================================================================== #
 #  S3 methods and helper functions                                            #
 # =========================================================================== #
 
 #' Print an InfoMergeCluster fit
 #'
-#' Summarises an \code{"infomergecluster"} object: number of clusters
-#' (selected or imposed), proportions, variance parameters, priors,
-#' covariate effects, stability diagnostic (if any) and table of criteria.
-#' Warns when the residual variance is close to zero, a regime in which the
-#' choice of K is unstable.
+#' Prints the number of clusters, the proportions, the variance parameters,
+#' the priors and the table of criteria of a fit returned by
+#' \code{\link{infomergecluster}}.
 #'
 #' @param x an object of class \code{"infomergecluster"}.
-#' @param ... not used.
+#' @param ... unused.
 #' @return \code{x}, invisibly.
 #' @export
-
 print.infomergecluster <- function(x, ...) {
   cat("InfoMergeCluster: clustering of sparse longitudinal data\n")
   cat(sprintf("  %d subjects, %d measurements, B-spline basis p = %d, random effect: %s\n",
@@ -67,50 +67,28 @@ print.infomergecluster <- function(x, ...) {
   invisible(x)
 }
 
-# mean trajectories of the clusters, with optional envelope
-#   interval = "none"       : mean curves only
-#   interval = "confidence" : pointwise confidence band of the mean curve,
-#                             f_k(t) +/- z * sqrt(B(t)' H_k^{-1} B(t))
-#   interval = "prediction" : band containing the measurements of a subject
-#                             of the cluster, variance B' H_k^{-1} B + Z G Z' + sigma2
-#   Columns <Ck>_lwr and <Ck>_upr contain the bounds.
-#   covariates: NULL (curves at the mean covariate values) or a numeric vector
-#               of covariate values, in the order of rownames(object$gamma)
-#               (dummy-coded for factors), on the original scale
-
-#' Cluster mean curves
+#' Mean trajectories of the clusters
 #'
-#' Evaluates the cluster mean curves on a time grid, with an optional
-#' envelope.
+#' Evaluates the mean curve of each cluster on a time grid, with an optional
+#' pointwise envelope.
 #'
-#' \itemize{
-#'   \item \code{"confidence"}: pointwise confidence band of the mean curve,
-#'     \eqn{f_k(t) \pm z \sqrt{B(t)' H_k^{-1} B(t)}};
-#'   \item \code{"prediction"}: band containing the measurements of a
-#'     subject of the cluster, with variance
-#'     \eqn{B' H_k^{-1} B + Z G Z' + \sigma^2}.
-#' }
+#' With \code{interval = "confidence"}, the band reflects the uncertainty on
+#' the mean curve, \eqn{f_k(t) \pm z \sqrt{B(t)' H_k^{-1} B(t)}}. With
+#' \code{interval = "prediction"}, it contains the measurements of a subject
+#' of the cluster, with variance \eqn{B' H_k^{-1} B + Z G Z' + \sigma^2}.
 #'
 #' @param object an object of class \code{"infomergecluster"}.
-#' @param times evaluation times (\code{NULL} = 200 points spanning the
-#'   observed range).
-#' @param interval \code{"none"}, \code{"confidence"} or
-#'   \code{"prediction"}.
-#' @param level envelope level.
+#' @param times time grid (default: 200 points over the observed range).
+#' @param interval \code{"none"}, \code{"confidence"} or \code{"prediction"}.
+#' @param level level of the envelope.
 #' @param covariates \code{NULL} (curves at the mean covariate values) or a
 #'   numeric vector of covariate values on the original scale, in the order
 #'   of \code{rownames(object$gamma)} (dummy-coded for factors).
-#' @param ... not used.
-#' @return A data frame with a \code{time} column, one column per cluster
-#'   (\code{C1}, \code{C2}, ...) and, when an envelope is requested, the
-#'   bounds \code{<Ck>_lwr} and \code{<Ck>_upr}.
-#' @examples
-#' set.seed(1)
-#' g <- f.data.generation(senario = 1, n.k = c(30, 40), n.cts = c(0, 2))
-#' fit <- infomergecluster(g$liste, K = 2, verbose = FALSE)
-#' head(predict(fit, interval = "confidence"))
+#' @param ... unused.
+#' @return A data.frame with a \code{time} column, one column per cluster
+#'   (\code{C1}, \code{C2}, ...) and, if an envelope is requested, the bounds
+#'   \code{<Ck>_lwr} and \code{<Ck>_upr}.
 #' @export
-
 predict.infomergecluster <- function(object, times = NULL,
                                      interval = c("none", "confidence", "prediction"),
                                      level = 0.95, covariates = NULL, ...) {
@@ -149,41 +127,68 @@ predict.infomergecluster <- function(object, times = NULL,
   out
 }
 
-# envelope      : TRUE to draw an envelope around the mean curves
-# envelope_type : "confidence" (uncertainty on the mean) or
-#                 "prediction" (spread of the subjects in the cluster)
-# level         : envelope level (0.95 by default)
-# show_data     : whether to draw the individual trajectories
-# legend        : TRUE (default) to draw the legend, FALSE to hide it
-# legend_pos    : legend position ("topleft", "topright", "bottomleft",
-#                 "bottomright", "top", "bottom", "left", "right", "center")
+#' Predicted individual trajectories
+#'
+#' Computes the predicted trajectory of each subject (BLUP of the random
+#' effect, conditional on its MAP cluster) on a time grid. With covariates,
+#' they are held at the subject's mean values.
+#'
+#' @param object an object of class \code{"infomergecluster"} fitted with
+#'   \code{keep_data = TRUE}.
+#' @param times time grid (default: 100 points over the observed range).
+#' @return A matrix with one row per subject and one column per time.
+#' @export
+fitted_curves <- function(object, times = NULL) {
+  if (is.null(object$data)) stop("Rerun infomergecluster() with keep_data = TRUE.")
+  if (is.null(times)) times <- seq(object$basis$lo, object$basis$hi, length.out = 100)
+  d <- object$data
+  ids <- names(object$cluster)
+  Bt <- .im_basis_eval(object$basis, times)
+  Zt <- .im_Z(object$basis, object$re, times, Bt)
+  G <- object$G
+  s2 <- object$sigma2
+  rows <- split(seq_len(nrow(d)), factor(d$id, levels = unique(d$id)))
+  res <- matrix(NA_real_, length(ids), length(times), dimnames = list(ids, NULL))
+  for (i in seq_along(ids)) {
+    r_i <- rows[[ids[i]]]
+    Bi <- .im_basis_eval(object$basis, d$t[r_i])
+    Zi <- .im_Z(object$basis, object$re, d$t[r_i], Bi)
+    Vi <- Zi %*% G %*% t(Zi) + diag(s2, nrow(Zi))
+    bk <- object$beta[, object$cluster[i]]
+    shift_obs <- 0
+    shift_grid <- 0
+    if (!is.null(object$gamma)) {
+      Xi <- as.matrix(d[r_i, object$covariates$names, drop = FALSE])
+      gk <- object$gamma[, object$cluster[i]]
+      shift_obs <- as.vector(Xi %*% gk)
+      shift_grid <- sum(colMeans(Xi) * gk)   # covariates held at the subject mean
+    }
+    u <- G %*% t(Zi) %*% solve(Vi, d$y[r_i] - Bi %*% bk - shift_obs)
+    res[i, ] <- Bt %*% bk + shift_grid + Zt %*% u
+  }
+  res
+}
 
 #' Plot an InfoMergeCluster fit
 #'
-#' Plots the individual trajectories coloured by cluster and the cluster
-#' mean curves, with an optional envelope.
+#' Draws the individual trajectories colored by cluster and the mean curve
+#' of each cluster, with an optional envelope.
 #'
 #' @param x an object of class \code{"infomergecluster"}.
-#' @param max_subjects maximum number of subjects drawn (random subsample
-#'   beyond that).
+#' @param max_subjects maximum number of subjects drawn (random subsample beyond).
 #' @param envelope \code{TRUE} to draw an envelope around the mean curves.
 #' @param envelope_type \code{"confidence"} (uncertainty on the mean) or
-#'   \code{"prediction"} (spread of the subjects of the cluster).
+#'   \code{"prediction"} (spread of the subjects in the cluster).
 #' @param xlab,ylab axis labels.
-#' @param main title; may contain \code{\%d} (K) then \code{\%s}
-#'   (criterion, or "imposed").
+#' @param main title; a format with \code{\%d} for K and \code{\%s} for the
+#'   criterion (or "imposed").
 #' @param level envelope level.
-#' @param show_data draw the individual trajectories.
-#' @param legend draw the legend.
-#' @param legend_pos legend position (\code{"topleft"}, \code{"topright"},
-#'   \code{"bottomleft"}, \code{"bottomright"}, \code{"top"},
-#'   \code{"bottom"}, \code{"left"}, \code{"right"}, \code{"center"}).
-#' @param ... further arguments passed to
-#'   \code{\link[graphics]{plot.default}}.
+#' @param show_data whether to draw the individual trajectories.
+#' @param legend \code{TRUE} to draw the legend.
+#' @param legend_pos legend position (\code{"topleft"}, \code{"topright"}, ...).
+#' @param ... further arguments passed to \code{plot}.
 #' @return \code{x}, invisibly.
-#' @seealso \code{\link{predict.infomergecluster}}
 #' @export
-
 plot.infomergecluster <- function(x, max_subjects = 300, envelope = FALSE,
                                   envelope_type = c("confidence", "prediction"),
                                   xlab = "Time (days)", ylab = "Weight",
@@ -231,4 +236,41 @@ plot.infomergecluster <- function(x, max_subjects = 300, envelope = FALSE,
                      col = cols, lwd = 3, bty = "n", title = leg_title)
   }
   invisible(x)
+}
+
+#' Stability of the clustering across random seeds
+#'
+#' Reruns \code{\link{infomergecluster}} with several seeds and returns the
+#' fit with the best criterion, supplemented with a stability diagnostic.
+#'
+#' @param data data, as in \code{\link{infomergecluster}}.
+#' @param ... arguments passed to \code{\link{infomergecluster}} (except \code{seed}).
+#' @param seeds vector of seeds.
+#' @param verbose print the current seed.
+#' @return The best fit (class \code{"infomergecluster"}) with an extra
+#'   element \code{stability}: the K of each run, their frequencies, the
+#'   criteria, the matrix of adjusted Rand indices between runs and its mean.
+#' @export
+infomergecluster_stability <- function(data, ..., seeds = 1:10, verbose = FALSE) {
+  fits <- lapply(seeds, function(s) {
+    if (verbose) message(sprintf("seed %s", s))
+    infomergecluster(data, ..., seed = s, verbose = FALSE)
+  })
+  Ks <- vapply(fits, function(f) as.integer(f$K), integer(1))
+  crit <- vapply(fits, function(f) {
+    row <- f$table[f$table$K == f$K, ]
+    if (f$criterion == "BIC") row$BIC else row$ICL
+  }, numeric(1))
+  n <- length(fits)
+  ari <- diag(1, n)
+  if (n > 1) {
+    for (i in 1:(n - 1)) for (j in (i + 1):n) {
+      a <- fits[[i]]$cluster
+      ari[i, j] <- ari[j, i] <- adjusted_rand(a, fits[[j]]$cluster[names(a)])
+    }
+  }
+  best <- fits[[which.min(crit)]]
+  best$stability <- list(seeds = seeds, K = Ks, K_freq = table(Ks), criterion = crit,
+                         ari = ari, mean_ari = if (n > 1) mean(ari[upper.tri(ari)]) else 1)
+  best
 }

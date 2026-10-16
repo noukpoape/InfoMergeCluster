@@ -1,35 +1,23 @@
-# =========================================================================== #
-#  Criteria and utilities                                                     #
-# =========================================================================== #
+# Part of the InfoMergeCluster package.
+# Authors: Komlan Midodzi Noukpoape <noukpoape@gmail.com>, Cristian Preda
 
-.im_criteria_table <- function(fits, q, N, penalty) {
-  rows <- lapply(fits, function(f) {
-    if (is.null(f)) return(NULL)
-    K <- f$K
-    n_alpha <- if (is.null(f$n_alpha)) 0 else f$n_alpha
-    dK <- (K - 1) + n_alpha + f$edf + q * (q + 1) / 2 + 1 + as.numeric(penalty)
-    tt <- f$tau[f$tau > 0]
-    ent <- -sum(tt * log(tt))
-    bic <- -2 * f$ll + dK * log(N)
-    data.frame(K = K, loglik = f$ll, edf = f$edf, n_par = dK, BIC = bic,
-               ICL = bic + 2 * ent, entropy = ent, min_pi = min(f$pi))
-  })
-  do.call(rbind, rows)
-}
-
-.im_onehot <- function(lab, K, eps = 0.01) {
-  tau <- matrix(eps / K, length(lab), K)
-  tau[cbind(seq_along(lab), lab)] <- 1 - eps + eps / K
-  tau
-}
-
-.im_inv <- function(M) chol2inv(chol(M))
-
-.im_logdet <- function(M) 2 * sum(log(diag(chol(M))))
-
-.im_psd_floor <- function(M, floor_abs) {
-  M <- (M + t(M)) / 2
-  e <- eigen(M, symmetric = TRUE)
-  v <- pmax(e$values, floor_abs)
-  e$vectors %*% (v * t(e$vectors))
+#' Adjusted Rand index
+#'
+#' Adjusted Rand index between two partitions (no external dependency).
+#'
+#' @references
+#' Hubert, L. and Arabie, P. (1985). Comparing partitions. Journal of
+#' Classification, 2(1), 193--218.
+#'
+#' @param a,b two vectors of cluster labels of the same length.
+#' @return The adjusted Rand index (1 = identical partitions).
+#' @export
+adjusted_rand <- function(a, b) {
+  tab <- table(a, b)
+  cmb <- function(x) sum(choose(x, 2))
+  s_ij <- cmb(tab)
+  s_a <- cmb(rowSums(tab))
+  s_b <- cmb(colSums(tab))
+  e <- s_a * s_b / choose(sum(tab), 2)
+  (s_ij - e) / ((s_a + s_b) / 2 - e)
 }

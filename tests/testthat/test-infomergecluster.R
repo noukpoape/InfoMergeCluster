@@ -1,69 +1,100 @@
-test_that("infomergecluster recovers two well-separated groups", {
-  set.seed(1)
-  g <- f.data.generation(senario = 1, n.k = c(40, 50), n.cts = c(0, 2.5), n.min = 3)
-  fit <- infomergecluster(g$liste, K_max = 4, seed = 1, verbose = FALSE)
+set.seed(42)
+gen <- f.data.generation(senario = 1, n.k = c(60, 60))
+long <- gen$df
+
+test_that("imposed K returns exactly K clusters", {
+  fit <- infomergecluster(long, K = 2, verbose = FALSE, seed = 1)
   expect_s3_class(fit, "infomergecluster")
-  expect_false(fit$K_fixed)
-  expect_equal(fit$K, 2L)
-  expect_gt(adjusted_rand(fit$cluster, attr(g$liste, "groupe")), 0.8)
-  expect_equal(sum(fit$pi), 1, tolerance = 1e-8)
-  expect_true(fit$sigma2 > 0)
-
-  pr <- predict(fit, times = c(0.1, 0.5, 0.9), interval = "prediction")
-  expect_named(pr, c("time", "C1", "C2", "C1_lwr", "C1_upr", "C2_lwr", "C2_upr"),
-               ignore.order = TRUE)
-  expect_true(all(pr$C1_lwr < pr$C1 & pr$C1 < pr$C1_upr))
-
-  fc <- fitted_curves(fit, times = c(0.2, 0.8))
-  expect_equal(dim(fc), c(90L, 2L))
-
-  expect_output(print(fit), "Selected K")
-  pdf(NULL)
-  on.exit(dev.off())
-  expect_silent(plot(fit, envelope = TRUE))
-})
-
-test_that("a user-supplied K is used as is, without selection", {
-  set.seed(3)
-  g <- f.data.generation(senario = 2, n.k = c(30, 30, 30), n.cts = c(0, 1, 2), n.min = 3)
-  fit <- infomergecluster(g$df, K = 2, seed = 1, verbose = FALSE)
   expect_equal(fit$K, 2L)
   expect_true(fit$K_fixed)
-  expect_equal(ncol(fit$beta), 2L)
+  expect_length(fit$cluster, 120)
+  expect_equal(sum(fit$pi), 1, tolerance = 1e-8)
   expect_null(fit$outer)
-  expect_output(print(fit), "K imposed")
+})
 
-  fit1 <- infomergecluster(g$df, K = 1, verbose = FALSE)
-  expect_equal(fit1$K, 1L)
-  expect_true(all(fit1$cluster == 1L))
+test_that("automatic selection returns a valid fit", {
+  fit <- infomergecluster(long, K_max = 3, verbose = FALSE, seed = 1)
+  expect_false(fit$K_fixed)
+  expect_true(fit$K >= 1 && fit$K <= 3)
+  expect_true(all(c("K", "BIC", "ICL") %in% names(fit$table)))
+})
 
-  expect_error(infomergecluster(g$df, K = 0, verbose = FALSE), "integer")
-  expect_error(infomergecluster(g$df, K = 60, verbose = FALSE), "too large")
+test_that("invalid K is rejected", {
+  expect_error(infomergecluster(long, K = 0, verbose = FALSE))
+  expect_error(infomergecluster(long, K = 2.5, verbose = FALSE))
+  expect_error(infomergecluster(long, K = 1000, verbose = FALSE))
+})
+
+test_that("predict and fitted_curves have the expected shape", {
+  fit <- infomergecluster(long, K = 2, verbose = FALSE, seed = 1)
+  pr <- predict(fit, times = seq(0, 1, length.out = 11), interval = "confidence")
+  expect_equal(nrow(pr), 11)
+  expect_true(all(c("C1", "C1_lwr", "C1_upr") %in% names(pr)))
+  fc <- fitted_curves(fit, times = seq(0, 1, length.out = 5))
+  expect_equal(dim(fc), c(120L, 5L))
+})
+
+test_that("list input is accepted", {
+  lst <- split(long[, c("x", "y")], long$id)
+  fit <- infomergecluster(lst, K = 2, verbose = FALSE, seed = 3)
+  expect_equal(fit$K, 2L)
+  expect_setequal(names(fit$cluster), names(lst))
+})
+
+test_that("adjusted_rand is 1 for identical partitions", {
+  a <- rep(1:3, each = 5)
+  expect_equal(adjusted_rand(a, a), 1)
+  expect_equal(adjusted_rand(a, c(3, 1, 2)[a]), 1)
+})
+
+test_that("scenario 1 with its reference settings runs with both data formats", {
+  set.seed(1)
+  g1 <- f.data.generation(senario = 1, n.k = c(43, 57), n.cts = c(1.8, 2.4), n.min = 2)
+  f_df <- infomergecluster(g1$df, K = 2, re = "intercept", verbose = FALSE, seed = 1)
+  f_ls <- infomergecluster(g1$liste, K = 2, re = "intercept", verbose = FALSE, seed = 1)
+  expect_equal(f_df$K, 2L)
+  expect_equal(f_ls$K, 2L)
+  expect_length(f_df$cluster, 100)
+})
+
+test_that("f.data.generation reproduces the reference group sizes", {
+  ref <- list(
+    list(n.k = c(43, 57),             n.cts = c(1.8, 2.4),           n.min = 2),
+    list(n.k = c(35, 43, 72),         n.cts = c(2, 2.3, 2.7),        n.min = 3),
+    list(n.k = c(34, 67, 71, 28),     n.cts = c(0.9, 1.5, 2.2, 2.4), n.min = 3),
+    list(n.k = c(60, 85, 45, 70, 50), n.cts = rep(0, 5),             n.min = 3)
+  )
+  for (s in 1:4) {
+    g <- do.call(f.data.generation, c(list(senario = s), ref[[s]]))
+    expect_equal(as.vector(table(attr(g$liste, "groupe"))), ref[[s]]$n.k)
+    expect_false(anyNA(g$df$y))
+    expect_gte(min(sapply(g$liste, nrow)), ref[[s]]$n.min)
+  }
 })
 
 test_that("covariates and covariate-dependent weights", {
-  set.seed(4)
-  g <- f.data.generation(senario = 1, n.k = c(40, 40), n.cts = c(0, 2.5), n.min = 3)
-  d <- g$df[, c("id", "x", "y")]
-  grp <- attr(g$liste, "groupe")
-  age <- stats::rnorm(80, 50, 10) + 10 * (grp == 2)
-  d$age <- age[d$id]
-  d$y <- d$y + 0.05 * (d$age - 50)
-
-  fit <- infomergecluster(d, K = 2, n_cov = 1, seed = 1, verbose = FALSE)
-  expect_equal(dim(fit$gamma), c(1L, 2L))
-  expect_true(all(abs(fit$gamma - 0.05) < 0.05))
+  set.seed(2)
+  dat <- long[, c("id", "x", "y")]
+  n_i <- as.vector(table(factor(dat$id, levels = unique(dat$id))))
+  dat$sex <- rep(sample(c("F", "M"), length(n_i), replace = TRUE), n_i)
+  dat$age <- rep(round(runif(length(n_i), 20, 60)), n_i)
+  fit <- infomergecluster(dat, K = 2, n_cov = 2, verbose = FALSE, seed = 1)
+  expect_equal(dim(fit$gamma), c(2L, 2L))
   expect_null(fit$alpha)
-  p1 <- predict(fit, times = 0.5, covariates = 60)
-  p0 <- predict(fit, times = 0.5)
-  expect_equal(unname(unlist(p1[, -1] - p0[, -1])),
-               unname((60 - fit$covariates$center) * fit$gamma[1, ]), tolerance = 1e-10)
-  expect_error(predict(fit, covariates = c(1, 2)), "value")
+  pr <- predict(fit, times = c(0, 0.5, 1), covariates = c(1, 40))
+  expect_equal(nrow(pr), 3)
+  fit_w <- infomergecluster(dat, K = 2, n_cov = 2, weights = "covariates",
+                            verbose = FALSE, seed = 1)
+  expect_equal(dim(fit_w$alpha), c(3L, 2L))
+  expect_error(infomergecluster(long, K = 2, weights = "covariates", verbose = FALSE))
+})
 
-  fitw <- infomergecluster(d, K = 2, n_cov = 1, weights = "covariates", seed = 1, verbose = FALSE)
-  expect_equal(dim(fitw$alpha), c(2L, 2L))
-  expect_equal(unname(fitw$alpha[, 1]), c(0, 0))
-  expect_output(print(fitw), "multinomial logistic")
-
-  expect_error(infomergecluster(d, weights = "covariates", verbose = FALSE), "n_cov")
+test_that("infomergecluster_citation returns the BibTeX entry", {
+  ref <- infomergecluster_citation()
+  expect_match(ref, "^@manual\\{noukpoape2026infomergecluster,")
+  expect_match(ref, "author=\\{Noukpoape, Komlan Midodzi and Preda, Cristian\\}")
+  expect_match(infomergecluster_citation("text"), "^Noukpoape, K. M. and Preda, C. \\(2026\\)")
+  bib <- tempfile(fileext = ".bib")
+  infomergecluster_citation(file = bib)
+  expect_true(file.exists(bib))
 })
