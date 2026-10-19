@@ -21,6 +21,17 @@
 #' derivative), with a smoothing parameter estimated within the EM algorithm
 #' (Fellner-Schall update); the covariate effects are not penalized.
 #'
+#' The variance structure is common to all clusters: the random-effect
+#' covariance \eqn{G} and the residual variance \eqn{\sigma^2} are shared by
+#' the \eqn{K} clusters, and only \eqn{\beta_k}, \eqn{\gamma_k} and
+#' \eqn{\pi_k} are cluster-specific. Clusters thus differ by the shape of
+#' their mean trajectory, not by the spread of their subjects around it.
+#' Since \eqn{V_i = Z_i G Z_i' + \sigma^2 I} does not depend on the cluster,
+#' each subject is summarized once by its information statistics
+#' \eqn{A_i = B_i' V_i^{-1} B_i} and \eqn{b_i = B_i' V_i^{-1} y_i}, which add up
+#' over the subjects of a cluster; this makes the E step cheap and the merge
+#' cost of the InfoMergeCluster tree exact.
+#'
 #' Conjugate priors are always placed on the variance structure,
 #' \eqn{G \sim IW_q(q, \Psi_0)} and \eqn{\sigma^2 \sim IG(1, b_\sigma)}.
 #' Their hyperparameters are calibrated on the empirical variogram of the
@@ -106,8 +117,8 @@
 #'   \item{alpha}{coefficients of the multinomial logistic model of the
 #'     weights, cluster C1 as reference (\code{NULL} unless
 #'     \code{weights = "covariates"}).}
-#'   \item{G, sigma2, lambda}{random-effect covariance, residual variance and
-#'     smoothing parameter.}
+#'   \item{G, sigma2, lambda}{random-effect covariance and residual variance
+#'     (common to all clusters), and smoothing parameter.}
 #'   \item{loglik, edf}{log-likelihood and effective degrees of freedom.}
 #'   \item{table}{criteria (log-likelihood, BIC, ICL, entropy) of every fitted K.}
 #'   \item{re}{random-effect structure used.}

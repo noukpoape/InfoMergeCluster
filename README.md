@@ -93,6 +93,18 @@ $`\mathbf{u}_i`$, a subject of cluster $`k`$ is Gaussian:
 \mathbf{V}_i = \mathbf{Z}_i \mathbf{G} \mathbf{Z}_i^\top + \sigma^2 \mathbf{I}.
 ```
 
+**The variance structure is common to all clusters.** The random-effect
+covariance $`\mathbf{G}`$ and the residual variance $`\sigma^2`$ are shared
+by the $`K`$ clusters; only the mean trajectory $`\boldsymbol\beta_k`$ (and,
+with covariates, the effects $`\boldsymbol\gamma_k`$) and the proportion
+$`\pi_k`$ are cluster-specific. Clusters therefore differ by the *shape* of
+their mean trajectory, not by the spread of their subjects around it. This
+choice is central to the method: since $`\mathbf{V}_i`$ does not depend on
+the cluster, each subject is summarized once by information statistics that
+add up over the subjects of a cluster (see below), which makes the E step
+cheap and the merge cost of the InfoMergeCluster tree exact. It also keeps
+the number of variance parameters at $`q(q+1)/2 + 1`$ whatever $`K`$.
+
 > **Why a random effect changes everything.** Without a random effect, two
 > measurements of the same subject would be independent given its cluster, and
 > any level difference between a subject and its cluster would be "noise". With
